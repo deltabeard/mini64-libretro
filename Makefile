@@ -1,6 +1,6 @@
 DEBUG = 0
-FORCE_GLES ?= 0
-FORCE_GLES3 ?= 0
+USE_GLES ?= 0
+USE_GLES3 ?= 0
 LLE ?= 0
 HAVE_PARALLEL_RSP ?= 0
 
@@ -14,139 +14,99 @@ AWK       ?= awk
 STRINGS   ?= strings
 TR        ?= tr
 
-UNAME=$(shell uname -a)
+# Checks if the given library is available for linking. Works with GCC and
+# Clang.
+IS_LIB_AVAIL = $(shell $(CC) -l$(CHECK_LIB) 2>&1 >/dev/null | grep "cannot find" > /dev/null; echo $$?)
+
+# Check for the availability of GL libs.
+CHECK_LIB := GL
+USE_GL    := $(IS_LIB_AVAIL)
+CHECK_LIB := GLESv2
+USE_GLES  := $(IS_LIB_AVAIL)
+CHECK_LIB := opengl32
+USE_GL32  := $(IS_LIB_AVAIL)
+CHECK_LIB := brcmGLESv2
+USE_GLRPI := $(IS_LIB_AVAIL)
+
+# Prioritise OpenGL before OpenGLES if both are available.
+ifeq ($(USE_GL),1)
+	GL_LIB := -lGL
+else ifeq ($(USE_GLES),1)
+	GL_LIB := -lGLESv2
+	GLES = 1
+else ifeq ($(USE_GL32),1)
+	GL_LIB := -lopengl32
+	platform := win
+else ifeq ($(USE_GLRPI),1)
+	GL_LIB := -L/opt/vc/lib -lbrcmGLESv2
+	EGL_LIB := -lbrcmEGL
+	INCFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vcos -I/opt/vc/include/interface/vcos/pthreads
+	#TODO: Change LDFLAGS to LDLIBS
+	LDFLAGS += -ldl
+else
+	err := $(error Either OpenGL or OpenGLES is required, but neither could be found)
+endif
+
+# Assume platform is unix if not set to win previously, or forced by user.
+platform ?= unix
 
 # Dirs
 ROOT_DIR := .
 LIBRETRO_DIR := $(ROOT_DIR)/libretro
 DEPSDIR	:=	$(CURDIR)/
 
-ifeq ($(platform),)
-   platform = unix
-   ifeq ($(UNAME),)
-      platform = win
-   else ifneq ($(findstring MINGW,$(UNAME)),)
-      platform = win
-   else ifneq ($(findstring Darwin,$(UNAME)),)
-      platform = osx
-   else ifneq ($(findstring win,$(UNAME)),)
-      platform = win
-   endif
-else ifneq (,$(findstring armv,$(platform)))
-   override platform += unix
-endif
-
-# system platform
-system_platform = unix
-ifeq ($(shell uname -a),)
-   EXE_EXT = .exe
-   system_platform = win
-else ifneq ($(findstring Darwin,$(shell uname -a)),)
-   system_platform = osx
-   arch = intel
-ifeq ($(shell uname -p),powerpc)
-   arch = ppc
-endif
-else ifneq ($(findstring MINGW,$(shell uname -a)),)
-   system_platform = win
-endif
-
-# Cross compile ?
-
-ifeq (,$(ARCH))
-   ARCH = $(shell uname -m)
-endif
+ARCH ?= $(shell uname -m)
 
 # Target Dynarec
 WITH_DYNAREC = $(ARCH)
 
+# FIXME: Remove PIC
 PIC = 1
 ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
-   WITH_DYNAREC = x86
-   PIC = 0
+	WITH_DYNAREC = x86
+	PIC = 0
+else ifeq ($(ARCH), $(filter $(WITH_DYNAREC), x86_64 x64))
+	WITH_DYNAREC = x86_64
 else ifeq ($(ARCH), $(filter $(ARCH), arm))
-   WITH_DYNAREC = arm
+	WITH_DYNAREC = arm
+else ifeq ($(ARCH), $(filter $(ARCH), aarch64))
+	WITH_DYNAREC = aarch64
 endif
 
-TARGET_NAME := mupen64plus_next
+TARGET_NAME := mini64
 CC_AS ?= $(CC)
 
-GIT_VERSION ?= " $(shell git rev-parse --short HEAD || echo unknown)"
-ifneq ($(GIT_VERSION)," unknown")
+GIT_VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+ifneq ($(GIT_VERSION),)
 	COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 
-ifneq ($(CORE_NAME),)
-	COREFLAGS += -DCORE_NAME=\""$(CORE_NAME)"\"
+ifeq ($(platform), win)
+	ifeq ($(ARCH), x86_64)
+		ASFLAGS := -f win64 -d WIN64
+	else
+		ASFLAGS := -f win32 -f WIN32 -d LEADING_UNDERSCORE
+	endif
+else
+	ifeq ($(ARCH), x86_64)
+		ASFLAGS := -f elf64 -d ELF_TYPE
+	else
+		ASFLAGS := -f elf -d ELF_TYPE
+	endif
 endif
+
+LDFLAGS := -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
 
 # Linux
 ifneq (,$(findstring unix,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
 
-   ifeq ($(FORCE_GLES),1)
-      GLES = 1
-      GL_LIB := -lGLESv2
-   else ifeq ($(FORCE_GLES3),1)
-      GLES3 = 1
-      GL_LIB := -lGLESv2
-   else
-      GL_LIB := -lGL
-   endif
-
+# TODO: Check if OS defines are required.
    COREFLAGS += -DOS_LINUX
-   ifeq ($(ARCH), x86_64)
-      ASFLAGS = -f elf64 -d ELF_TYPE
-   else
-      ASFLAGS = -f elf -d ELF_TYPE
-   endif
-
-   ifneq (,$(findstring armv,$(platform)))
-      CPUFLAGS += -DARM -marm
-      ifneq (,$(findstring cortexa8,$(platform)))
-         CPUFLAGS += -mcpu=cortex-a8
-      else ifneq (,$(findstring cortexa9,$(platform)))
-         CPUFLAGS += -mcpu=cortex-a9
-      else
-         CPUFLAGS += -mcpu=cortex-a7
-      endif
-      ifneq (,$(findstring neon,$(platform)))
-          CPUFLAGS += -mfpu=neon
-          HAVE_NEON = 1
-      endif
-      ifneq (,$(findstring softfloat,$(platform)))
-          CPUFLAGS += -mfloat-abi=softfp
-      else ifneq (,$(findstring hardfloat,$(platform)))
-          CPUFLAGS += -mfloat-abi=hard
-      endif
-   endif
 
 # Raspberry Pi
 else ifneq (,$(findstring rpi,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -ldl
-   ifeq ($(FORCE_GLES3),1)
-      GLES3 = 1
-   else
-      GLES = 1
-   endif
-   ifneq (,$(findstring mesa,$(platform)))
-      MESA = 1
-   endif
-   ifneq (,$(findstring rpi4,$(platform)))
-      MESA = 1
-   endif
-   ifeq ($(MESA), 1)
-      GL_LIB := -lGLESv2
-   else
-      LLE = 0
-      CPUFLAGS += -DVC
-      GL_LIB := -L/opt/vc/lib -lbrcmGLESv2
-      EGL_LIB := -lbrcmEGL
-      INCFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vcos -I/opt/vc/include/interface/vcos/pthreads
-   endif
-   WITH_DYNAREC=arm
    ifneq (,$(findstring rpi2,$(platform)))
       CPUFLAGS += -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
       HAVE_NEON = 1
@@ -158,7 +118,6 @@ else ifneq (,$(findstring rpi,$(platform)))
       HAVE_NEON = 1
    endif
    COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
 
 # Nintendo Switch
 else ifeq ($(platform), libnx)
@@ -184,9 +143,6 @@ else ifneq (,$(findstring odroid64,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
    BOARD ?= $(shell cat /proc/cpuinfo | grep -i odroid | awk '{print $$3}')
-   GLES = 1
-   GL_LIB := -lGLESv2
-   WITH_DYNAREC := aarch64
    ifneq (,$(findstring C2,$(BOARD)))
       # ODROID-C2
       CPUFLAGS += -mcpu=cortex-a53
@@ -206,8 +162,6 @@ else ifneq (,$(findstring odroid,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
    BOARD ?= $(shell cat /proc/cpuinfo | grep -i odroid | awk '{print $$3}')
-   GLES = 1
-   GL_LIB := -lGLESv2
    CPUFLAGS += -marm -mfloat-abi=hard
    HAVE_NEON = 1
    WITH_DYNAREC=arm
@@ -251,9 +205,7 @@ else ifneq (,$(findstring AMLG,$(platform)))
       endif
    endif
 
-   GL_LIB := -lGLESv2
    HAVE_NEON = 1
-   WITH_DYNAREC=arm
    COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
    ASFLAGS = -f elf -d ELF_TYPE
 
@@ -261,11 +213,8 @@ else ifneq (,$(findstring AMLG,$(platform)))
 else ifneq (,$(findstring amlogic,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -ldl
-   GLES = 1
-   GL_LIB := -lGLESv2
    CPUFLAGS += -marm -mfloat-abi=hard -mfpu=neon
    HAVE_NEON = 1
-   WITH_DYNAREC=arm
    COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
    CPUFLAGS += -march=armv8-a -mcpu=cortex-a53 -mtune=cortex-a53
 
@@ -288,9 +237,7 @@ else ifneq (,$(findstring RK,$(platform)))
       GLES3 = 1
    endif
 
-   GL_LIB := -lGLESv2
    HAVE_NEON = 1
-   WITH_DYNAREC=arm
    COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
    ASFLAGS = -f elf -d ELF_TYPE
 
@@ -311,6 +258,7 @@ else ifneq (,$(findstring osx,$(platform)))
       WITH_DYNAREC =
    endif
 
+# FIXME: OSX uses OS_LINUX?
    COREFLAGS += -DOS_LINUX
    ASFLAGS = -f elf -d ELF_TYPE
 # iOS
@@ -326,7 +274,7 @@ else ifneq (,$(findstring ios,$(platform)))
 		WITH_DYNAREC=
 		GLES=1
 		GLES3=1
-		FORCE_GLES3=1
+		USE_GLES3=1
 		EGL := 0
 		PLATCFLAGS += -DHAVE_POSIX_MEMALIGN -DNO_ASM
 		PLATCFLAGS += -DIOS -marm -DOS_IOS -DDONT_WANT_ARM_OPTIMIZATIONS
@@ -424,24 +372,8 @@ else ifeq ($(platform), emscripten)
 # Windows
 else
    TARGET := $(TARGET_NAME)_libretro.dll
-   LDFLAGS += -shared -static-libgcc -static-libstdc++ -Wl,--version-script=$(LIBRETRO_DIR)/link.T -lwinmm -lgdi32
-   GL_LIB := -lopengl32
+   LDFLAGS += -shared -static-libgcc -static-libstdc++ -lwinmm -lgdi32
    
-   ifeq ($(MSYSTEM),MINGW64)
-      CC = x86_64-w64-mingw32-gcc
-      CXX = x86_64-w64-mingw32-g++
-      WITH_DYNAREC = x86_64
-      COREFLAGS += -DWIN64
-      ASFLAGS = -f win64 -d WIN64
-      PIC = 1
-   else ifeq ($(MSYSTEM),MINGW32)
-      CC = i686-w64-mingw32-gcc
-      CXX = i686-w64-mingw32-g++
-      WITH_DYNAREC = x86
-      COREFLAGS += -DWIN32
-      ASFLAGS = -f win32 -d WIN32 -d LEADING_UNDERSCORE
-   endif
-
    HAVE_PARALLEL_RSP = 1
    HAVE_THR_AL = 1
    LLE = 1
@@ -472,7 +404,7 @@ endif
 COREFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ -DUSE_FILE32API -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -D_ENDUSER_RELEASE -DSINC_LOWER_QUALITY -DTXFILTER_LIB -D__VEC4_OPT -DMUPENPLUSAPI
 
 ifeq ($(DEBUG), 1)
-   CPUOPTS += -O0 -g
+   CPUOPTS += -Og -g3
    CPUOPTS += -DOPENGL_DEBUG
 else
    CPUOPTS += -DNDEBUG -fsigned-char -ffast-math -fno-strict-aliasing -fomit-frame-pointer -fvisibility=hidden
@@ -481,10 +413,6 @@ ifneq ($(platform), libnx)
 endif
    CXXFLAGS += -fvisibility-inlines-hidden
 endif
-
-# set C/C++ standard to use
-CFLAGS += -std=gnu11 -D_CRT_SECURE_NO_WARNINGS
-CXXFLAGS += -std=gnu++11 -D_CRT_SECURE_NO_WARNINGS
 
 ifeq ($(HAVE_LTCG),1)
    CPUFLAGS += -flto
@@ -497,18 +425,18 @@ else
 endif
 
 OBJECTS     += $(SOURCES_CXX:.cpp=.o) $(SOURCES_C:.c=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
-CXXFLAGS    += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(PLATCFLAGS) $(fpic) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
 CFLAGS      += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(PLATCFLAGS) $(fpic) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
+CXXFLAGS    += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(PLATCFLAGS) $(fpic) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
+
+# set C/C++ standard to use
+CFLAGS += -std=gnu11 -D_CRT_SECURE_NO_WARNINGS
+CXXFLAGS += -std=gnu++11 -D_CRT_SECURE_NO_WARNINGS
 
 ifeq (,$(findstring android,$(platform)))
    LDFLAGS    += -lpthread
 endif
 
-ifeq ($(platform), ios-arm64)
-	LDFLAGS    += $(fpic) -O3 $(CPUOPTS) $(PLATCFLAGS) $(CPUFLAGS)
-else
-	LDFLAGS    += $(fpic) -O3 $(CPUOPTS) $(PLATCFLAGS) $(CPUFLAGS)
-endif
+LDFLAGS    += $(fpic) -O3 $(CPUOPTS) $(PLATCFLAGS) $(CPUFLAGS)
 
 all: $(TARGET)
 $(TARGET): $(OBJECTS)
@@ -539,7 +467,7 @@ $(AWK_DEST_DIR)/asm_defines_nasm.h: $(ASM_DEFINES_OBJ)
 clean:
 	find -name "*.o" -type f -delete
 	find -name "*.d" -type f -delete
-	rm -f $(TARGET)
+	$(RM) $(TARGET)
 
 .PHONY: clean
 -include $(OBJECTS:.o=.d)
