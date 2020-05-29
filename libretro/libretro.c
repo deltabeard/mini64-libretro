@@ -18,6 +18,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,10 +77,11 @@
 #define OPTION_ENTRY_RDP_GLIDEN64 "gliden64"
 #define OPTION_ENTRY_RSP_HLE "hle"
 
+void log_fallback(enum retro_log_level level, const char *fmt, ...);
+
 struct retro_perf_callback perf_cb;
 retro_get_cpu_features_t perf_get_cpu_features_cb = NULL;
-
-retro_log_printf_t log_cb = NULL;
+retro_log_printf_t log_cb = log_fallback;
 retro_video_refresh_t video_cb = NULL;
 retro_input_poll_t poll_cb = NULL;
 retro_input_state_t input_cb = NULL;
@@ -180,10 +182,29 @@ extern struct
 int pad_pak_types[4];
 int pad_present[4] = {1, 1, 1, 1};
 
+void log_fallback(enum retro_log_level level, const char *fmt, ...)
+{
+    char buffer[256];
+    const char *const p_str[] = {
+        "VERBOSE", "INFO", "WARN", "ERROR"
+    };
+    int ret;
+    va_list ap;
+
+    va_start(ap, fmt);
+    ret = vsnprintf(buffer, sizeof(buffer), fmt, ap);
+    va_end(ap);
+
+    if(ret < 0)
+        return;
+
+    fprintf(stderr, "[%s] %s: %s", p_str[level], CORE_NAME, buffer);
+}
+
 static void n64DebugCallback(void* aContext, int aLevel, const char* aMessage)
 {
-    char buffer[1024];
-    snprintf(buffer, 1024, CORE_NAME ": %s\n", aMessage);
+    char buffer[256];
+    snprintf(buffer, 256, CORE_NAME ": %s\n", aMessage);
     if (log_cb)
         log_cb(RETRO_LOG_INFO, buffer);
 }
@@ -551,7 +572,7 @@ void retro_init(void)
     if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
         log_cb = log.log;
     else
-        log_cb = NULL;
+        log_cb = log_fallback;
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf_cb))
         perf_get_cpu_features_cb = perf_cb.get_cpu_features;
