@@ -94,9 +94,6 @@ void ResizeVideoOutput(int width, int height){
     }
 
 DEFINE_GFX(gln64);
-#if defined(HAVE_THR_AL)
-DEFINE_GFX(angrylion);
-#endif
 
 gfx_plugin_functions gfx;
 GFX_INFO gfx_info;
@@ -249,7 +246,7 @@ m64p_error plugin_start_gfx(void)
     gfx_info.VI_X_SCALE_REG = &(g_dev.vi.regs[VI_X_SCALE_REG]);
     gfx_info.VI_Y_SCALE_REG = &(g_dev.vi.regs[VI_Y_SCALE_REG]);
     gfx_info.CheckInterrupts = EmptyFunc;
-    
+
     gfx_info.version = 2; //Version 2 added SP_STATUS_REG and RDRAM_SIZE
     gfx_info.SP_STATUS_REG = &g_dev.sp.regs[SP_STATUS_REG];
     gfx_info.RDRAM_SIZE = (unsigned int*) &g_dev.rdram.dram_size;
@@ -389,16 +386,7 @@ enum rsp_plugin_type current_rsp_type = RSP_PLUGIN_NONE;
 
 void plugin_connect_rdp_api(enum rdp_plugin_type type)
 {
-   switch (type)
-   {
-      case RDP_PLUGIN_GLIDEN64:
-      case RDP_PLUGIN_ANGRYLION:
-         current_rdp_type = type;
-         break;
-      case RSP_PLUGIN_NONE:
-      default:
-         break;
-   }
+	current_rdp_type = type;
 }
 
 void plugin_connect_rsp_api(enum rsp_plugin_type type)
@@ -419,20 +407,7 @@ void plugin_connect_rsp_api(enum rsp_plugin_type type)
 /* global functions */
 void plugin_connect_all()
 {
-    switch (current_rdp_type)
-    {
-       case RDP_PLUGIN_ANGRYLION:
-#ifdef HAVE_THR_AL
-          gfx = gfx_angrylion;
-#endif
-          break;
-       case RDP_PLUGIN_GLIDEN64:
-          gfx = gfx_gln64;
-          break;
-      case RDP_PLUGIN_NONE:
-      default:
-         break;
-    }
+    gfx = gfx_gln64;
 
     l_GfxAttached = 1;
     plugin_start_gfx();
@@ -463,7 +438,7 @@ void plugin_connect_all()
     audio = dummy_audio;
     l_AudioAttached = 1;
     //plugin_start_audio();
-    
+
     input = dummy_input;
     l_InputAttached = 1;
     plugin_start_input();
@@ -483,7 +458,7 @@ void plugin_connect_all()
     audio = dummy_audio;
     l_AudioAttached = 1;
     //plugin_start_audio();
-    
+
     input = dummy_input;
     l_InputAttached = 1;
     plugin_start_input();

@@ -36,7 +36,6 @@ enum rdp_plugin_type
 {
    RDP_PLUGIN_NONE = 0,
    RDP_PLUGIN_GLIDEN64,
-   RDP_PLUGIN_ANGRYLION,
    RDP_PLUGIN_MAX
 };
 

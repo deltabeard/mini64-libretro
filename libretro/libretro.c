@@ -72,35 +72,9 @@
 
 #define ISHEXDEC ((codeLine[cursor]>='0') && (codeLine[cursor]<='9')) || ((codeLine[cursor]>='a') && (codeLine[cursor]<='f')) || ((codeLine[cursor]>='A') && (codeLine[cursor]<='F'))
 
-/* Forward declarations */
-#ifdef HAVE_THR_AL
-void angrylion_set_filtering(unsigned filter_type);
-void angrylion_set_vi_blur(unsigned value);
-void angrylion_set_threads(unsigned value);
-void angrylion_set_overscan(unsigned value);
-void angrylion_set_synclevel(unsigned value);
-void angrylion_set_vi_dedither(unsigned value);
-void angrylion_set_vi(unsigned value);
-
-struct rgba
-{
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-    uint8_t a;
-};
-extern struct rgba prescale[PRESCALE_WIDTH * PRESCALE_HEIGHT];
-#endif // HAVE_THR_AL
-
 // Option entries
 #define OPTION_ENTRY_RDP_GLIDEN64 "gliden64"
 #define OPTION_ENTRY_RSP_HLE "hle"
-
-#ifdef HAVE_THR_AL
-#define OPTION_ENTRY_RDP_ANGRYLION "|angrylion"
-#else
-#define OPTION_ENTRY_RDP_ANGRYLION ""
-#endif // HAVE_THR_AL
 
 #ifdef HAVE_PARALLEL_RSP
 #define OPTION_ENTRY_RSP_PARALLEL "|parallel"
@@ -240,10 +214,6 @@ static void setup_variables(void)
 #else
             "CPU Core; cached_interpreter|pure_interpreter" },
 #endif
-        { CORE_NAME "-rdp-plugin",
-            "RDP Mode; " OPTION_ENTRY_RDP_GLIDEN64 OPTION_ENTRY_RDP_ANGRYLION },
-        { CORE_NAME "-rsp-plugin",
-            "RSP Mode; " OPTION_ENTRY_RSP_HLE OPTION_ENTRY_RSP_PARALLEL OPTION_ENTRY_RSP_CXD4 },
         { CORE_NAME "-43screensize",
             "(GLN64) 4:3 Resolution; 640x480|320x240|960x720|1280x960|1440x1080|1600x1200|1920x1440|2240x1680|2560x1920|2880x2160|3200x2400|3520x2640|3840x2880" },
         { CORE_NAME "-169screensize",
@@ -342,16 +312,6 @@ static void setup_variables(void)
             "(GLN64) Use enhanced Texture Storage; False|True" },
         { CORE_NAME "-EnableEnhancedHighResStorage",
             "(GLN64) Use enhanced Hi-Res Storage; False|True" },
-#ifdef HAVE_THR_AL
-        { CORE_NAME "-angrylion-vioverlay",
-            "(AL) VI Overlay; Filtered|AA+Blur|AA+Dedither|AA only|Unfiltered|Depth|Coverage" },
-        { CORE_NAME "-angrylion-sync",
-            "(AL) Thread sync level; Low|Medium|High" },
-        { CORE_NAME "-angrylion-multithread",
-            "(AL) Multi-threading; all threads|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|48|49|50|51|52|53|54|55|56|57|58|59|60|61|62|63" },
-        { CORE_NAME "-angrylion-overscan",
-            "(AL) Hide overscan; disabled|enabled" },
-#endif // HAVE_THR_AL
         { CORE_NAME "-FrameDuping",
 #ifdef HAVE_LIBNX
             "Frame Duplication; True|False" },
@@ -516,14 +476,14 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info *i
             } else {
                 return false;
             }
-            
+
             printf("Loading %s...\n", info[0].path);
             load_file(info[1].path, (void**)&info[1].data, &info[1].size);
             return retro_load_game(&info[1]);
         default:
             return false;
     }
-    
+
 	return false;
 }
 
@@ -546,7 +506,7 @@ void retro_set_environment(retro_environment_t cb)
     };
 
     environ_cb(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO, (void*)subsystems);
-    
+
     setup_variables();
 }
 
@@ -705,660 +665,458 @@ void update_controllers()
     }
 }
 
-static void update_variables(bool startup)
+// TODO: Only check for variables that actually change something during gameplay
+static void update_variables(void)
 {
     struct retro_variable var;
 
-    if (startup)
+    plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
+    plugin_connect_rsp_api(RSP_PLUGIN_HLE);
+
+    var.key = CORE_NAME "-BilinearMode";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-       var.key = CORE_NAME "-rdp-plugin";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "gliden64"))
-          {
-            plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
-          }
-          else if (!strcmp(var.value, "angrylion"))
-          {
-             plugin_connect_rdp_api(RDP_PLUGIN_ANGRYLION);
-          }
-       }
-       else
-       {
-          plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
-       }
+        bilinearMode = !strcmp(var.value, "3point") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-rsp-plugin";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "hle"))
-          {
-             // If we use angrylion with hle, we will force parallel if available!
-             if(current_rdp_type != RDP_PLUGIN_ANGRYLION)
-             {
-                plugin_connect_rsp_api(RSP_PLUGIN_HLE);
-             }
-             else
-             {
-#if defined(HAVE_PARALLEL_RSP)
-                plugin_connect_rsp_api(RSP_PLUGIN_PARALLEL);
-                log_cb(RETRO_LOG_INFO, "Selected HLE RSP with Angrylion, falling back to Parallel RSP!\n");
-#elif defined(HAVE_LLE)
-                plugin_connect_rsp_api(RSP_PLUGIN_CXD4);
-                log_cb(RETRO_LOG_INFO, "Selected HLE RSP with Angrylion, falling back to CXD4!\n");
-#else
-                log_cb(RETRO_LOG_INFO, "Requested Angrylion but no LLE RSP available, falling back to GLideN64!\n");
-                plugin_connect_rsp_api(RSP_PLUGIN_HLE);
-                plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
-#endif 
-             }
-          }
-          else if (!strcmp(var.value, "cxd4"))
-          {
-             plugin_connect_rsp_api(RSP_PLUGIN_CXD4);
-          }
-          else if (!strcmp(var.value, "parallel"))
-          {
-             plugin_connect_rsp_api(RSP_PLUGIN_PARALLEL);
-          }
-       }
-       else
-       {
-          if(current_rdp_type != RDP_PLUGIN_ANGRYLION)
-          {
-                plugin_connect_rsp_api(RSP_PLUGIN_HLE);
-          }
-          else
-          {
-#if defined(HAVE_PARALLEL_RSP)
-             plugin_connect_rsp_api(RSP_PLUGIN_PARALLEL);
-#elif defined(HAVE_LLE)
-             plugin_connect_rsp_api(RSP_PLUGIN_CXD4);
-#else
-             log_cb(RETRO_LOG_INFO, "Requested Angrylion but no LLE RSP available, falling back to GLideN64!\n");
-             plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
-             plugin_connect_rsp_api(RSP_PLUGIN_HLE);
-#endif 
-          }
-       }
+    var.key = CORE_NAME "-FXAA";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableFXAA = atoi(var.value);
+    }
 
-       var.key = CORE_NAME "-BilinearMode";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          bilinearMode = !strcmp(var.value, "3point") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-MultiSampling";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        MultiSampling = atoi(var.value);
+    }
 
-       var.key = CORE_NAME "-FXAA";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableFXAA = atoi(var.value);
-       }
+    var.key = CORE_NAME "-FrameDuping";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableFrameDuping = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-MultiSampling";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          MultiSampling = atoi(var.value);
-       }
+    var.key = CORE_NAME "-Framerate";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableFullspeed = !strcmp(var.value, "Original") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-FrameDuping";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableFrameDuping = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-virefresh";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        CountPerScanlineOverride = !strcmp(var.value, "Auto") ? 0 : atoi(var.value);
+    }
 
-       var.key = CORE_NAME "-Framerate";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableFullspeed = !strcmp(var.value, "Original") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-NoiseEmulation";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableNoiseEmulation = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-virefresh";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          CountPerScanlineOverride = !strcmp(var.value, "Auto") ? 0 : atoi(var.value);
-       }
+    var.key = CORE_NAME "-EnableLODEmulation";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableLODEmulation = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-NoiseEmulation";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableNoiseEmulation = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableFBEmulation";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableFBEmulation = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableLODEmulation";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableLODEmulation = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableN64DepthCompare";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableN64DepthCompare = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableFBEmulation";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableFBEmulation = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableCopyColorToRDRAM";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "Async"))
+            EnableCopyColorToRDRAM = 2;
+        else if (!strcmp(var.value, "Sync"))
+            EnableCopyColorToRDRAM = 1;
+        else
+            EnableCopyColorToRDRAM = 0;
+    }
 
-       var.key = CORE_NAME "-EnableN64DepthCompare";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableN64DepthCompare = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableCopyDepthToRDRAM";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "Software"))
+            EnableCopyDepthToRDRAM = 2;
+        else if (!strcmp(var.value, "FromMem"))
+            EnableCopyDepthToRDRAM = 1;
+        else
+            EnableCopyDepthToRDRAM = 0;
+    }
 
-       var.key = CORE_NAME "-EnableCopyColorToRDRAM";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "Async"))
-             EnableCopyColorToRDRAM = 2;
-          else if (!strcmp(var.value, "Sync"))
-             EnableCopyColorToRDRAM = 1;
-          else
-             EnableCopyColorToRDRAM = 0;
-       }
+    var.key = CORE_NAME "-EnableHWLighting";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableHWLighting = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableCopyDepthToRDRAM";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "Software"))
-             EnableCopyDepthToRDRAM = 2;
-          else if (!strcmp(var.value, "FromMem"))
-             EnableCopyDepthToRDRAM = 1;
-          else
-             EnableCopyDepthToRDRAM = 0;
-       }
+    var.key = CORE_NAME "-CorrectTexrectCoords";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "Force"))
+            CorrectTexrectCoords = 2;
+        else if (!strcmp(var.value, "Auto"))
+            CorrectTexrectCoords = 1;
+        else
+            CorrectTexrectCoords = 0;
+    }
 
-       var.key = CORE_NAME "-EnableHWLighting";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableHWLighting = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-BackgroundMode";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        BackgroundMode = !strcmp(var.value, "OnePiece") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-CorrectTexrectCoords";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "Force"))
-             CorrectTexrectCoords = 2;
-          else if (!strcmp(var.value, "Auto"))
-             CorrectTexrectCoords = 1;
-          else
-             CorrectTexrectCoords = 0;
-       }
+    var.key = CORE_NAME "-EnableNativeResTexrects";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if(!strcmp(var.value, "False") || !strcmp(var.value, "Disabled"))
+        {
+            enableNativeResTexrects = 0; // NativeResTexrectsMode::ntDisable
+        }
+        else if(!strcmp(var.value, "Optimized"))
+        {
+            enableNativeResTexrects = 1; // NativeResTexrectsMode::ntOptimized
+        }
+        else if(!strcmp(var.value, "Unoptimized"))
+        {
+            enableNativeResTexrects = 2; // NativeResTexrectsMode::ntUnptimized (Note: upstream typo)
+        }
+    }
 
-       var.key = CORE_NAME "-BackgroundMode";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          BackgroundMode = !strcmp(var.value, "OnePiece") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-txFilterMode";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "Smooth filtering 1"))
+            txFilterMode = 1;
+        else if (!strcmp(var.value, "Smooth filtering 2"))
+            txFilterMode = 2;
+        else if (!strcmp(var.value, "Smooth filtering 3"))
+            txFilterMode = 3;
+        else if (!strcmp(var.value, "Smooth filtering 4"))
+            txFilterMode = 4;
+        else if (!strcmp(var.value, "Sharp filtering 1"))
+            txFilterMode = 5;
+        else if (!strcmp(var.value, "Sharp filtering 2"))
+            txFilterMode = 6;
+        else
+            txFilterMode = 0;
+    }
 
-       var.key = CORE_NAME "-EnableNativeResTexrects";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if(!strcmp(var.value, "False") || !strcmp(var.value, "Disabled"))
-          {
-             enableNativeResTexrects = 0; // NativeResTexrectsMode::ntDisable
-          }
-          else if(!strcmp(var.value, "Optimized"))
-          {
-             enableNativeResTexrects = 1; // NativeResTexrectsMode::ntOptimized
-          }
-          else if(!strcmp(var.value, "Unoptimized"))
-          {
-             enableNativeResTexrects = 2; // NativeResTexrectsMode::ntUnptimized (Note: upstream typo)
-          }
-       }
+    var.key = CORE_NAME "-txEnhancementMode";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "As Is"))
+            txEnhancementMode = 1;
+        else if (!strcmp(var.value, "X2"))
+            txEnhancementMode = 2;
+        else if (!strcmp(var.value, "X2SAI"))
+            txEnhancementMode = 3;
+        else if (!strcmp(var.value, "HQ2X"))
+            txEnhancementMode = 4;
+        else if (!strcmp(var.value, "HQ2XS"))
+            txEnhancementMode = 5;
+        else if (!strcmp(var.value, "LQ2X"))
+            txEnhancementMode = 6;
+        else if (!strcmp(var.value, "LQ2XS"))
+            txEnhancementMode = 7;
+        else if (!strcmp(var.value, "HQ4X"))
+            txEnhancementMode = 8;
+        else if (!strcmp(var.value, "2xBRZ"))
+            txEnhancementMode = 9;
+        else if (!strcmp(var.value, "3xBRZ"))
+            txEnhancementMode = 10;
+        else if (!strcmp(var.value, "4xBRZ"))
+            txEnhancementMode = 11;
+        else if (!strcmp(var.value, "5xBRZ"))
+            txEnhancementMode = 12;
+        else if (!strcmp(var.value, "6xBRZ"))
+            txEnhancementMode = 13;
+        else
+            txEnhancementMode = 0;
+    }
 
-       var.key = CORE_NAME "-txFilterMode";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "Smooth filtering 1"))
-             txFilterMode = 1;
-          else if (!strcmp(var.value, "Smooth filtering 2"))
-             txFilterMode = 2;
-          else if (!strcmp(var.value, "Smooth filtering 3"))
-             txFilterMode = 3;
-          else if (!strcmp(var.value, "Smooth filtering 4"))
-             txFilterMode = 4;
-          else if (!strcmp(var.value, "Sharp filtering 1"))
-             txFilterMode = 5;
-          else if (!strcmp(var.value, "Sharp filtering 2"))
-             txFilterMode = 6;
-          else
-             txFilterMode = 0;
-       }
+    var.key = CORE_NAME "-txFilterIgnoreBG";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        // "Filter background textures; True|False" (true=filter, false=ignore)
+        txFilterIgnoreBG = !strcmp(var.value, "False") ? 1 : 0;
+    }
 
-       var.key = CORE_NAME "-txEnhancementMode";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "As Is"))
-             txEnhancementMode = 1;
-          else if (!strcmp(var.value, "X2"))
-             txEnhancementMode = 2;
-          else if (!strcmp(var.value, "X2SAI"))
-             txEnhancementMode = 3;
-          else if (!strcmp(var.value, "HQ2X"))
-             txEnhancementMode = 4;
-          else if (!strcmp(var.value, "HQ2XS"))
-             txEnhancementMode = 5;
-          else if (!strcmp(var.value, "LQ2X"))
-             txEnhancementMode = 6;
-          else if (!strcmp(var.value, "LQ2XS"))
-             txEnhancementMode = 7;
-          else if (!strcmp(var.value, "HQ4X"))
-             txEnhancementMode = 8;
-          else if (!strcmp(var.value, "2xBRZ"))
-             txEnhancementMode = 9;
-          else if (!strcmp(var.value, "3xBRZ"))
-             txEnhancementMode = 10;
-          else if (!strcmp(var.value, "4xBRZ"))
-             txEnhancementMode = 11;
-          else if (!strcmp(var.value, "5xBRZ"))
-             txEnhancementMode = 12;
-          else if (!strcmp(var.value, "6xBRZ"))
-             txEnhancementMode = 13;
-          else
-             txEnhancementMode = 0;
-       }
+    var.key = CORE_NAME "-txHiresEnable";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        txHiresEnable = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-txFilterIgnoreBG";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          // "Filter background textures; True|False" (true=filter, false=ignore)
-          txFilterIgnoreBG = !strcmp(var.value, "False") ? 1 : 0;
-       }
+    var.key = CORE_NAME "-txCacheCompression";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableTxCacheCompression = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-txHiresEnable";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          txHiresEnable = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-txHiresFullAlphaChannel";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        txHiresFullAlphaChannel = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-txCacheCompression";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableTxCacheCompression = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-MaxTxCacheSize";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        MaxTxCacheSize = atoi(var.value);
+    }
 
-       var.key = CORE_NAME "-txHiresFullAlphaChannel";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          txHiresFullAlphaChannel = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableLegacyBlending";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        enableLegacyBlending = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-MaxTxCacheSize";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          MaxTxCacheSize = atoi(var.value);
-       }
+    var.key = CORE_NAME "-EnableFragmentDepthWrite";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableFragmentDepthWrite = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableLegacyBlending";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          enableLegacyBlending = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableShadersStorage";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableShadersStorage = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableFragmentDepthWrite";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableFragmentDepthWrite = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableTextureCache";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableTextureCache = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableShadersStorage";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableShadersStorage = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableEnhancedTextureStorage";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableEnhancedTextureStorage = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableTextureCache";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableTextureCache = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-EnableEnhancedHighResStorage";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableEnhancedHighResStorage = !strcmp(var.value, "False") ? 0 : 1;
+    }
 
-       var.key = CORE_NAME "-EnableEnhancedTextureStorage";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableEnhancedTextureStorage = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-cpucore";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "pure_interpreter"))
+            r4300_emumode = EMUMODE_PURE_INTERPRETER;
+        else if (!strcmp(var.value, "cached_interpreter"))
+            r4300_emumode = EMUMODE_INTERPRETER;
+        else
+            r4300_emumode = EMUMODE_DYNAREC;
+    }
+    else
+        r4300_emumode = EMUMODE_DYNAREC;
 
-       var.key = CORE_NAME "-EnableEnhancedHighResStorage";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableEnhancedHighResStorage = !strcmp(var.value, "False") ? 0 : 1;
-       }
+    var.key = CORE_NAME "-aspect";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "16:9 adjusted")) {
+            AspectRatio = 3;
+            retro_screen_aspect = 16.0 / 9.0;
+        } else if (!strcmp(var.value, "16:9")) {
+            AspectRatio = 2;
+            retro_screen_aspect = 16.0 / 9.0;
+        } else {
+            AspectRatio = 1;
+            retro_screen_aspect = 4.0 / 3.0;
+        }
+    }
 
-       var.key = CORE_NAME "-cpucore";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "pure_interpreter"))
-             r4300_emumode = EMUMODE_PURE_INTERPRETER;
-          else if (!strcmp(var.value, "cached_interpreter"))
-             r4300_emumode = EMUMODE_INTERPRETER;
-          else if (!strcmp(var.value, "dynamic_recompiler"))
-             r4300_emumode = EMUMODE_DYNAREC;
-       }
+    var.key = (AspectRatio == 1 ? CORE_NAME "-43screensize" : CORE_NAME "-169screensize");
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        sscanf(var.value, "%dx%d", &retro_screen_width, &retro_screen_height);
 
-       var.key = CORE_NAME "-aspect";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "16:9 adjusted")) {
-             AspectRatio = 3;
-             retro_screen_aspect = 16.0 / 9.0;
-          } else if (!strcmp(var.value, "16:9")) {
-             AspectRatio = 2;
-             retro_screen_aspect = 16.0 / 9.0;
-          } else {
-             AspectRatio = 1;
-             retro_screen_aspect = 4.0 / 3.0;
-          }
-       }
-
-       var.key = (AspectRatio == 1 ? CORE_NAME "-43screensize" : CORE_NAME "-169screensize");
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          sscanf(var.value, "%dx%d", &retro_screen_width, &retro_screen_height);
-
-          // Sanity check... not optimal since we will render at a higher res, but otherwise
-          // GLideN64 might blit a bigger image onto a smaller framebuffer
-          // This is a recent regression.
-          if((retro_screen_width == 320 && retro_screen_height == 240) ||
-             (retro_screen_width == 640 && retro_screen_height == 360))
-          {
+        // Sanity check... not optimal since we will render at a higher res, but otherwise
+        // GLideN64 might blit a bigger image onto a smaller framebuffer
+        // This is a recent regression.
+        if((retro_screen_width == 320 && retro_screen_height == 240) ||
+                (retro_screen_width == 640 && retro_screen_height == 360))
+        {
             EnableNativeResFactor = 1; // Force factor == 1
-          }
-       }
-
-       // If we use Angrylion, we force 640x480
-       // TODO: ?
-#ifdef HAVE_THR_AL
-       if(current_rdp_type == RDP_PLUGIN_ANGRYLION)
-       {
-          retro_screen_width = 640;
-          retro_screen_height = 480;
-          retro_screen_aspect = 4.0 / 3.0;
-          AspectRatio = 1;
-       }
-#endif // HAVE_THR_AL
-
-       var.key = CORE_NAME "-astick-deadzone";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-          astick_deadzone = (int)(atoi(var.value) * 0.01f * 0x8000);
-
-       var.key = CORE_NAME "-astick-sensitivity";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-          astick_sensitivity = atoi(var.value);
-
-       var.key = CORE_NAME "-CountPerOp";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          CountPerOp = atoi(var.value);
-       }
-       
-       if(EnableFullspeed)
-       {
-          CountPerOp = 1; // Force CountPerOp == 1
-          if(current_rdp_type == RDP_PLUGIN_GLIDEN64 && !EnableFBEmulation)
-             EnableFrameDuping = 1;
-       }
-
-#ifdef HAVE_THR_AL
-       if(current_rdp_type == RDP_PLUGIN_ANGRYLION)
-       {
-           // We always want frame duping here, the result will be different from GLideN64
-           // This is always prefered here!
-           EnableFrameDuping = 1;
-       }
-#endif // HAVE_THR_AL
-
-       var.key = CORE_NAME "-r-cbutton";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "C1"))
-             r_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
-          else if (!strcmp(var.value, "C2"))
-             r_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
-          else if (!strcmp(var.value, "C3"))
-             r_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
-          else if (!strcmp(var.value, "C4"))
-             r_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-       }
-
-       var.key = CORE_NAME "-l-cbutton";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "C1"))
-             l_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
-          else if (!strcmp(var.value, "C2"))
-             l_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
-          else if (!strcmp(var.value, "C3"))
-             l_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
-          else if (!strcmp(var.value, "C4"))
-             l_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-       }
-
-       var.key = CORE_NAME "-d-cbutton";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "C1"))
-             d_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
-          else if (!strcmp(var.value, "C2"))
-             d_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
-          else if (!strcmp(var.value, "C3"))
-             d_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
-          else if (!strcmp(var.value, "C4"))
-             d_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-       }
-
-       var.key = CORE_NAME "-u-cbutton";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          if (!strcmp(var.value, "C1"))
-             u_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
-          else if (!strcmp(var.value, "C2"))
-             u_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
-          else if (!strcmp(var.value, "C3"))
-             u_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
-          else if (!strcmp(var.value, "C4"))
-             u_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-       }
-
-       var.key = CORE_NAME "-EnableOverscan";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          EnableOverscan = !strcmp(var.value, "Enabled") ? 1 : 0;
-       }
-
-       var.key = CORE_NAME "-OverscanTop";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          OverscanTop = atoi(var.value);
-       }
-
-       var.key = CORE_NAME "-OverscanLeft";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          OverscanLeft = atoi(var.value);
-       }
-
-       var.key = CORE_NAME "-OverscanRight";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          OverscanRight = atoi(var.value);
-       }
-
-       var.key = CORE_NAME "-OverscanBottom";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          OverscanBottom = atoi(var.value);
-       }
-
-       var.key = CORE_NAME "-alt-map";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          alternate_mapping = !strcmp(var.value, "False") ? 0 : 1;
-       }
-
-       var.key = CORE_NAME "-ForceDisableExtraMem";
-       var.value = NULL;
-       if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-       {
-          ForceDisableExtraMem = !strcmp(var.value, "False") ? 0 : 1;
-       }
+        }
     }
 
-#ifdef HAVE_THR_AL
-    if (current_rdp_type == RDP_PLUGIN_ANGRYLION)
+    var.key = CORE_NAME "-astick-deadzone";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+        astick_deadzone = (int)(atoi(var.value) * 0.01f * 0x8000);
+
+    var.key = CORE_NAME "-astick-sensitivity";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+        astick_sensitivity = atoi(var.value);
+
+    var.key = CORE_NAME "-CountPerOp";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        var.key = CORE_NAME "-angrylion-vioverlay";
-        var.value = NULL;
-
-        environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
-
-        if (var.value)
-        {
-           if (!strcmp(var.value, "Filtered"))
-           {
-              angrylion_set_vi(0);
-              angrylion_set_vi_dedither(1);
-              angrylion_set_vi_blur(1);
-           }
-           else if (!strcmp(var.value, "AA+Blur"))
-           {
-              angrylion_set_vi(0);
-              angrylion_set_vi_dedither(0);
-              angrylion_set_vi_blur(1);
-           }
-           else if (!strcmp(var.value, "AA+Dedither"))
-           {
-              angrylion_set_vi(0);
-              angrylion_set_vi_dedither(1);
-              angrylion_set_vi_blur(0);
-           }
-           else if (!strcmp(var.value, "AA only"))
-           {
-              angrylion_set_vi(0);
-              angrylion_set_vi_dedither(0);
-              angrylion_set_vi_blur(0);
-           }
-           else if (!strcmp(var.value, "Unfiltered"))
-           {
-              angrylion_set_vi(1);
-              angrylion_set_vi_dedither(1);
-              angrylion_set_vi_blur(1);
-           }
-           else if (!strcmp(var.value, "Depth"))
-           {
-              angrylion_set_vi(2);
-              angrylion_set_vi_dedither(1);
-              angrylion_set_vi_blur(1);
-           }
-           else if (!strcmp(var.value, "Coverage"))
-           {
-              angrylion_set_vi(3);
-              angrylion_set_vi_dedither(1);
-              angrylion_set_vi_blur(1);
-           }
-        }
-        else
-        {
-           angrylion_set_vi(0);
-           angrylion_set_vi_dedither(1);
-           angrylion_set_vi_blur(1);
-        }
-
-        var.key = CORE_NAME "-angrylion-sync";
-        var.value = NULL;
-
-        environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
-
-        if (var.value)
-        {
-           if (!strcmp(var.value, "High"))
-              angrylion_set_synclevel(2);
-           else if (!strcmp(var.value, "Medium"))
-              angrylion_set_synclevel(1);
-           else if (!strcmp(var.value, "Low"))
-              angrylion_set_synclevel(0);
-        }
-        else
-           angrylion_set_synclevel(0);
-
-        var.key = CORE_NAME "-angrylion-multithread";
-        var.value = NULL;
-
-        if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-        {
-           if (!strcmp(var.value, "all threads"))
-              angrylion_set_threads(0);
-           else
-              angrylion_set_threads(atoi(var.value));
-        }
-        else
-           angrylion_set_threads(0);
-
-        var.key = CORE_NAME "-angrylion-overscan";
-        var.value = NULL;
-
-        environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var);
-
-        if (var.value)
-        {
-           if (!strcmp(var.value, "enabled"))
-              angrylion_set_overscan(1);
-           else if (!strcmp(var.value, "disabled"))
-              angrylion_set_overscan(0);
-        }
-        else
-        {
-           angrylion_set_overscan(0);
-        }
+        CountPerOp = atoi(var.value);
     }
-#endif // HAVE_THR_AL
 
-    update_controllers();
+    if(EnableFullspeed)
+    {
+        CountPerOp = 1; // Force CountPerOp == 1
+        if(current_rdp_type == RDP_PLUGIN_GLIDEN64 && !EnableFBEmulation)
+            EnableFrameDuping = 1;
+    }
+
+    var.key = CORE_NAME "-r-cbutton";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "C1"))
+            r_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
+        else if (!strcmp(var.value, "C2"))
+            r_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
+        else if (!strcmp(var.value, "C3"))
+            r_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
+        else if (!strcmp(var.value, "C4"))
+            r_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
+    }
+
+    var.key = CORE_NAME "-l-cbutton";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "C1"))
+            l_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
+        else if (!strcmp(var.value, "C2"))
+            l_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
+        else if (!strcmp(var.value, "C3"))
+            l_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
+        else if (!strcmp(var.value, "C4"))
+            l_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
+    }
+
+    var.key = CORE_NAME "-d-cbutton";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "C1"))
+            d_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
+        else if (!strcmp(var.value, "C2"))
+            d_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
+        else if (!strcmp(var.value, "C3"))
+            d_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
+        else if (!strcmp(var.value, "C4"))
+            d_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
+    }
+
+    var.key = CORE_NAME "-u-cbutton";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        if (!strcmp(var.value, "C1"))
+            u_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
+        else if (!strcmp(var.value, "C2"))
+            u_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
+        else if (!strcmp(var.value, "C3"))
+            u_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
+        else if (!strcmp(var.value, "C4"))
+            u_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
+    }
+
+    var.key = CORE_NAME "-EnableOverscan";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        EnableOverscan = !strcmp(var.value, "Enabled") ? 1 : 0;
+    }
+
+    var.key = CORE_NAME "-OverscanTop";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        OverscanTop = atoi(var.value);
+    }
+
+    var.key = CORE_NAME "-OverscanLeft";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        OverscanLeft = atoi(var.value);
+    }
+
+    var.key = CORE_NAME "-OverscanRight";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        OverscanRight = atoi(var.value);
+    }
+
+    var.key = CORE_NAME "-OverscanBottom";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        OverscanBottom = atoi(var.value);
+    }
+
+    var.key = CORE_NAME "-alt-map";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        alternate_mapping = !strcmp(var.value, "False") ? 0 : 1;
+    }
+
+    var.key = CORE_NAME "-ForceDisableExtraMem";
+    var.value = NULL;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        ForceDisableExtraMem = !strcmp(var.value, "False") ? 0 : 1;
+    }
 }
 
 static void format_saved_memory(void)
@@ -1431,7 +1189,7 @@ bool retro_load_game(const struct retro_game_info *game)
     glsm_ctx_params_t params = {0};
     format_saved_memory();
 
-    update_variables(true);
+    update_variables();
     initial_boot = false;
 
     init_audio_libretro(audio_buffer_size);
@@ -1466,8 +1224,10 @@ bool retro_load_game(const struct retro_game_info *game)
        first_context_reset = false;
        emu_step_initialize();
        /* Additional check for vioverlay not set at start */
-       update_variables(false);
+       update_variables();
     }
+
+    update_controllers();
 
     return true;
 }
@@ -1482,9 +1242,9 @@ void retro_run (void)
 {
     libretro_swap_buffer = false;
     static bool updated = false;
-    
+
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-       update_variables(false);
+       update_variables();
        update_controllers();
     }
 
@@ -1499,26 +1259,20 @@ void retro_run (void)
     {
        glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
     }
-    
+
     if (libretro_swap_buffer)
     {
        if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
        {
           video_cb(RETRO_HW_FRAME_BUFFER_VALID, retro_screen_width, retro_screen_height, 0);
        }
-#ifdef HAVE_THR_AL
-       else if(current_rdp_type == RDP_PLUGIN_ANGRYLION)
-       {
-          video_cb(prescale, retro_screen_width, retro_screen_height, screen_pitch);
-       }
-#endif // HAVE_THR_AL
     }
     else if(EnableFrameDuping)
     {
         // screen_pitch will be 0 for GLN
         video_cb(NULL, retro_screen_width, retro_screen_height, screen_pitch);
     }
-        
+
 }
 
 void retro_reset (void)
