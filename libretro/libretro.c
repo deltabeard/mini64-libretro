@@ -101,9 +101,6 @@ int d_cbutton;
 int u_cbutton;
 bool alternate_mapping;
 
-static uint8_t* game_data = NULL;
-static uint32_t game_size = 0;
-
 static bool     emu_initialized     = false;
 static unsigned initial_boot        = true;
 static unsigned audio_buffer_size   = 2048;
@@ -357,7 +354,7 @@ static void setup_variables(void)
 }
 
 
-static bool emu_step_load_data()
+static bool emu_step_load_data(const unsigned char *game_data, size_t game_size)
 {
     m64p_error ret = CoreStartup(FRONTEND_API_VERSION, ".", ".", "Core", n64DebugCallback, 0, 0);
     if(ret && log_cb)
@@ -372,9 +369,6 @@ static bool emu_step_load_data()
         goto load_fail;
     }
 
-    free(game_data);
-    game_data = NULL;
-
     log_cb(RETRO_LOG_DEBUG, CORE_NAME ": [EmuThread] M64CMD_ROM_GET_HEADER\n");
 
     if(CoreDoCommand(M64CMD_ROM_GET_HEADER, sizeof(ROM_HEADER), &ROM_HEADER))
@@ -387,8 +381,6 @@ static bool emu_step_load_data()
     return true;
 
 load_fail:
-    free(game_data);
-    game_data = NULL;
     //stop = 1;
 
     return false;
@@ -500,18 +492,14 @@ void retro_set_environment(retro_environment_t cb)
 
 void retro_get_system_info(struct retro_system_info *info)
 {
-#if defined(HAVE_OPENGLES2)
-    info->library_name = "Mupen64Plus-Next GLES2";
-#elif defined(HAVE_OPENGLES3)
-    info->library_name = "Mupen64Plus-Next GLES3";
-#else
-    info->library_name = "Mupen64Plus-Next OpenGL";
-#endif
+    info->library_name = "Mini64";
+
 #ifndef GIT_VERSION
-#define GIT_VERSION " git"
+#define GIT_VERSION "UNKNOWN"
 #endif
-    info->library_version = "2.0" GIT_VERSION;
-    info->valid_extensions = "n64|v64|z64|bin|u1";
+
+    info->library_version = "2.0-" GIT_VERSION;
+    info->valid_extensions = "n64|v64|z64";
     info->need_fullpath = false;
     info->block_extract = false;
 }
@@ -1195,26 +1183,10 @@ bool retro_load_game(const struct retro_game_info *game)
         return false;
     }
 
-    game_data = malloc(game->size);
-    memcpy(game_data, game->data, game->size);
-    game_size = game->size;
-
-    if (!emu_step_load_data())
+    if (!emu_step_load_data(game->data, game->size))
         return false;
 
-    if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
-    {
-       first_context_reset = true;
-    }
-    else
-    {
-       // Prevents later emu_step_initialize call
-       first_context_reset = false;
-       emu_step_initialize();
-       /* Additional check for vioverlay not set at start */
-       update_variables();
-    }
-
+    first_context_reset = true;
     update_controllers();
 
     return true;

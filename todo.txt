@@ -1,6 +1,2 @@
-Remove Angrylion
-Remove Parallel
-Remove CXD4
 Simplify config settings
 Remove minizip.
-Test how fast xxhash is compared to crc32 (much faster apparently)
