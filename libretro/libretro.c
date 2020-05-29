@@ -76,18 +76,6 @@
 #define OPTION_ENTRY_RDP_GLIDEN64 "gliden64"
 #define OPTION_ENTRY_RSP_HLE "hle"
 
-#ifdef HAVE_PARALLEL_RSP
-#define OPTION_ENTRY_RSP_PARALLEL "|parallel"
-#else
-#define OPTION_ENTRY_RSP_PARALLEL ""
-#endif // HAVE_PARALLEL_RSP
-
-#ifdef HAVE_LLE
-#define OPTION_ENTRY_RSP_CXD4 "|cxd4"
-#else
-#define OPTION_ENTRY_RSP_CXD4 ""
-#endif // HAVE_LLE
-
 struct retro_perf_callback perf_cb;
 retro_get_cpu_features_t perf_get_cpu_features_cb = NULL;
 

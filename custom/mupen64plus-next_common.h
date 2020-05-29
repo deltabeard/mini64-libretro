@@ -43,8 +43,6 @@ enum rsp_plugin_type
 {
    RSP_PLUGIN_NONE = 0,
    RSP_PLUGIN_HLE,
-   RSP_PLUGIN_CXD4,
-   RSP_PLUGIN_PARALLEL,
    RSP_PLUGIN_MAX
 };
 

@@ -1,10 +1,8 @@
 RSPDIR             = $(ROOT_DIR)/mupen64plus-rsp-hle
-CXD4DIR            = $(ROOT_DIR)/mupen64plus-rsp-cxd4
 CORE_DIR           = $(ROOT_DIR)/mupen64plus-core
 PNG_DIR            = $(ROOT_DIR)/custom/dependencies/libpng
 ZLIB_DIR           = $(ROOT_DIR)/custom/dependencies/libzlib
 LIBRETRO_COMM_DIR  = $(ROOT_DIR)/libretro-common
-RSPDIR_PARALLEL    = $(ROOT_DIR)/mupen64plus-rsp-paraLLEl
 AUDIO_LIBRETRO_DIR = $(ROOT_DIR)/custom/mupen64plus-core/plugin/audio_libretro
 VIDEODIR_GLIDEN64  = $(ROOT_DIR)/GLideN64
 
@@ -29,18 +27,6 @@ INCFLAGS += \
 
 ifneq (,$(findstring win,$(platform)))
 	INCFLAGS += -I$(ROOT_DIR)/custom/mman-win32
-endif
-
-ifeq ($(LLE), 1)
-SOURCES_C += \
-	$(ROOT_DIR)/custom/mupen64plus-rsp-cxd4/module.c \
-	$(CXD4DIR)/su.c \
-	$(CXD4DIR)/vu/add.c \
-	$(CXD4DIR)/vu/divide.c \
-	$(CXD4DIR)/vu/logical.c \
-	$(CXD4DIR)/vu/multiply.c \
-	$(CXD4DIR)/vu/select.c \
-	$(CXD4DIR)/vu/vu.c
 endif
 
 SOURCES_C = \
@@ -160,7 +146,6 @@ else
 endif
 
 ### DYNAREC ###
-ifdef WITH_DYNAREC
 ifeq ($(WITH_DYNAREC), arm)
 	DYNAREC_USED = 1
 	DYNAFLAGS += -DNEW_DYNAREC=3
@@ -169,16 +154,14 @@ ifeq ($(WITH_DYNAREC), arm)
 		$(CORE_DIR)/src/device/r4300/new_dynarec/arm/arm_cpu_features.c
 	SOURCES_ASM += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/arm/linkage_arm.S
-endif
-ifeq ($(WITH_DYNAREC), aarch64)
+else ifeq ($(WITH_DYNAREC), aarch64)
 	DYNAREC_USED = 1
 	DYNAFLAGS += -DNEW_DYNAREC=4
 	SOURCES_C += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c
 	SOURCES_ASM += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/arm64/linkage_arm64.S
-endif
-ifeq ($(WITH_DYNAREC), x86)
+else ifeq ($(WITH_DYNAREC), x86)
 	COREFLAGS += -DARCH_MIN_SSE2 -msse -msse2
 	DYNAREC_USED = 1
 	DYNAFLAGS += -DNEW_DYNAREC=1
@@ -186,8 +169,7 @@ ifeq ($(WITH_DYNAREC), x86)
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c
 	SOURCES_NASM += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/x86/linkage_x86.asm
-endif
-ifeq ($(WITH_DYNAREC), $(filter $(WITH_DYNAREC), x86_64 x64))
+else ifeq ($(WITH_DYNAREC), $(filter $(WITH_DYNAREC), x86_64 x64))
 	COREFLAGS += -DARCH_MIN_SSE2 -msse -msse2
 	DYNAREC_USED = 1
 	DYNAFLAGS += -DNEW_DYNAREC=2
@@ -196,10 +178,9 @@ ifeq ($(WITH_DYNAREC), $(filter $(WITH_DYNAREC), x86_64 x64))
 	SOURCES_NASM += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/x64/linkage_x64.asm
 endif
-ifeq ($(DYNAREC_USED),0)
-else
-	DYNAFLAGS += -DDYNAREC -I$(AWK_DEST_DIR)/
-endif
+
+ifeq ($(DYNAREC_USED),1)
+	DYNAFLAGS += -DDYNAREC -I$(AWK_DEST_DIR)
 endif
 
 # Libretro
@@ -375,43 +356,6 @@ SOURCES_C += \
 	$(RSPDIR)/src/re2.c \
 	$(RSPDIR)/src/plugin.c
 
-ifeq ($(LLE), 1)
-	SOURCES_C += $(CXD4DIR)/rsp.c
-endif
-
-ifeq ($(HAVE_PARALLEL_RSP), 1)
-	PARALLEL_RSP_ARCH := simd
-	SOURCES_CXX += $(RSPDIR_PARALLEL)/parallel.cpp \
-				   $(RSPDIR_PARALLEL)/rsp_disasm.cpp \
-				   $(wildcard $(RSPDIR_PARALLEL)/rsp/*.cpp) \
-				   $(wildcard $(RSPDIR_PARALLEL)/arch/$(PARALLEL_RSP_ARCH)/rsp/*.cpp)
-ifneq ($(DEBUG_JIT),)
-	CXXFLAGS += -DDEBUG_JIT
-	SOURCES_CXX += $(RSPDIR_PARALLEL)/debug_jit.cpp \
-				   $(RSPDIR_PARALLEL)/rsp.cpp
-	LDFLAGS += -ldl
-else
-	SOURCES_CXX += $(RSPDIR_PARALLEL)/rsp_jit.cpp
-	SOURCES_C += \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_disasm.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_memory.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_names.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_note.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_print.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/jit_size.c \
-				 $(RSPDIR_PARALLEL)/lightning/lib/lightning.c
-endif
-
-	CXXFLAGS += -I$(RSPDIR_PARALLEL)/arch/$(PARALLEL_RSP_ARCH)/rsp -I$(RSPDIR_PARALLEL)/lightning/include
-	CFLAGS += -DHAVE_PARALLEL_RSP -DPARALLEL_INTEGRATION -I$(RSPDIR_PARALLEL)/lightning/include
-	CXXFLAGS += -DHAVE_PARALLEL_RSP -DPARALLEL_INTEGRATION
-endif
-
-ifneq (,$(findstring win,$(platform)))
-	SOURCES_C += $(RSPDIR_PARALLEL)/win32/mman/sys/mman.c
-	CFLAGS += -I$(RSPDIR_PARALLEL)/win32/mman
-endif
-
 SOURCES_C += $(LIBRETRO_COMM_DIR)/libco/libco.c
 
 ifneq (,$(findstring rpi3,$(platform)))
@@ -424,17 +368,13 @@ endif
 
 ifeq ($(HAVE_NEON),1)
 	SOURCES_CXX   += $(VIDEODIR_GLIDEN64)/src/Neon/3DMathNeon.cpp \
-						  $(VIDEODIR_GLIDEN64)/src/Neon/gSPNeon.cpp
+			 $(VIDEODIR_GLIDEN64)/src/Neon/gSPNeon.cpp
 
 	SOURCES_ASM += $(LIBRETRO_COMM_DIR)/audio/conversion/float_to_s16_neon.S \
-						$(LIBRETRO_COMM_DIR)/audio/conversion/s16_to_float_neon.S \
-						$(LIBRETRO_COMM_DIR)/audio/resampler/drivers/sinc_resampler_neon.S
+	       $(LIBRETRO_COMM_DIR)/audio/conversion/s16_to_float_neon.S \
+	       $(LIBRETRO_COMM_DIR)/audio/resampler/drivers/sinc_resampler_neon.S
 else
 	SOURCES_CXX   += $(VIDEODIR_GLIDEN64)/src/3DMath.cpp
-endif
-
-ifneq ($(platform), ios-arm64)
-	EGL_LIB ?= -lEGL
 endif
 
 ifeq ($(GLES3),1)

@@ -102,6 +102,10 @@ static void aiDacrateChanged(void *user_data, unsigned int frequency, unsigned i
 #endif
 }
 
+// TODO: Possible optimisation here to set the libretro frequency to the first
+// frequency requested by the game. If that frequency then changes during
+// gameplay, then invoke the resampler.
+
 /* A fully compliant implementation is not really possible with just the zilmar spec.
  * We assume bits == 16 (assumption compatible with audio-sdl plugin implementation)
  */
@@ -115,6 +119,7 @@ void set_audio_format_via_libretro(void* user_data,
    ai->regs[AI_DACRATE_REG] = ai->vi->clock / frequency - 1;
 
    aiDacrateChanged(user_data, frequency, bits);
+   //fprintf(stderr, "New Freq: %u\n", frequency);
 
    /* restore original registers values */
    ai->regs[AI_DACRATE_REG] = saved_ai_dacrate;

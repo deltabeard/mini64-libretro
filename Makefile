@@ -1,8 +1,6 @@
 DEBUG = 0
 USE_GLES ?= 0
 USE_GLES3 ?= 0
-LLE ?= 0
-HAVE_PARALLEL_RSP ?= 0
 
 HAVE_LTCG ?= 0
 DYNAFLAGS :=
@@ -374,8 +372,6 @@ else
    TARGET := $(TARGET_NAME)_libretro.dll
    LDFLAGS += -shared -static-libgcc -static-libstdc++ -lwinmm -lgdi32
    
-   HAVE_PARALLEL_RSP = 1
-   LLE = 1
    COREFLAGS += -DOS_WINDOWS -DMINGW
    CXXFLAGS += -fpermissive
 endif
@@ -394,10 +390,6 @@ include Makefile.common
 
 ifeq ($(HAVE_NEON), 1)
    COREFLAGS += -DHAVE_NEON -D__ARM_NEON__ -D__NEON_OPT -ftree-vectorize -mvectorize-with-neon-quad -ftree-vectorizer-verbose=2 -funsafe-math-optimizations -fno-finite-math-only
-endif
-
-ifeq ($(LLE), 1)
-   COREFLAGS += -DHAVE_LLE
 endif
 
 COREFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ -DUSE_FILE32API -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -D_ENDUSER_RELEASE -DSINC_LOWER_QUALITY -DTXFILTER_LIB -D__VEC4_OPT -DMUPENPLUSAPI
