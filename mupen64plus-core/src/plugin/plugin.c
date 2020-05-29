@@ -366,6 +366,7 @@ m64p_error plugin_start(m64p_plugin_type type)
     return M64ERR_INTERNAL;
 }
 
+// TODO: Remove this. We know our frontend initialises the required plugins.
 m64p_error plugin_check(void)
 {
     if (!l_GfxAttached)
@@ -386,22 +387,12 @@ enum rsp_plugin_type current_rsp_type = RSP_PLUGIN_NONE;
 
 void plugin_connect_rdp_api(enum rdp_plugin_type type)
 {
-	current_rdp_type = type;
+    current_rdp_type = type;
 }
 
 void plugin_connect_rsp_api(enum rsp_plugin_type type)
 {
-   switch (type)
-   {
-      case RSP_PLUGIN_HLE:
-      case RSP_PLUGIN_CXD4:
-      case RSP_PLUGIN_PARALLEL:
-         current_rsp_type = type;
-         break;
-      case RSP_PLUGIN_NONE:
-      default:
-         break;
-   }
+    current_rsp_type = type;
 }
 
 /* global functions */
@@ -412,25 +403,7 @@ void plugin_connect_all()
     l_GfxAttached = 1;
     plugin_start_gfx();
 
-    switch (current_rsp_type)
-    {
-      case RSP_PLUGIN_HLE:
-         rsp = rsp_hle;
-         break;
-      case RSP_PLUGIN_CXD4:
-#ifdef HAVE_LLE
-         rsp = rsp_cxd4;
-#endif // HAVE_LLE
-         break;
-      case RSP_PLUGIN_PARALLEL:
-#ifdef HAVE_PARALLEL_RSP
-         rsp = rsp_parallelRSP;
-#endif // HAVE_PARALLEL_RSP
-         break;
-      case RSP_PLUGIN_NONE:
-      default:
-         break;
-    }
+    rsp = rsp_hle;
 
     l_RspAttached = 1;
     plugin_start_rsp();

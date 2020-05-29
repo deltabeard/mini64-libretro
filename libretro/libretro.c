@@ -46,7 +46,6 @@
 #include "main/version.h"
 #include "main/util.h"
 #include "main/savestates.h"
-#include "main/mupen64plus.ini.h"
 #include "api/m64p_config.h"
 #include "osal_files.h"
 #include "main/rom.h"
@@ -58,7 +57,7 @@
 #include "audio_plugin.h"
 
 #ifndef CORE_NAME
-#define CORE_NAME "mupen64plus"
+#define CORE_NAME "mini64"
 #endif
 
 #ifndef PRESCALE_WIDTH
@@ -68,8 +67,6 @@
 #ifndef PRESCALE_HEIGHT
 #define PRESCALE_HEIGHT 625
 #endif
-
-#define PATH_SIZE 2048
 
 #define ISHEXDEC ((codeLine[cursor]>='0') && (codeLine[cursor]<='9')) || ((codeLine[cursor]>='a') && (codeLine[cursor]<='f')) || ((codeLine[cursor]>='A') && (codeLine[cursor]<='F'))
 
@@ -541,31 +538,8 @@ unsigned retro_get_region (void)
     return ((ROM_PARAMS.systemtype == SYSTEM_PAL) ? RETRO_REGION_PAL : RETRO_REGION_NTSC);
 }
 
-void copy_file(char * ininame, char * fileName)
-{
-    const char* filename = ConfigGetSharedDataFilepath(fileName);
-    FILE *fp = fopen(filename, "w");
-    if (fp != NULL)    {
-        fputs(ininame, fp);
-        fclose(fp);
-    }
-}
-
 void retro_init(void)
 {
-    char* sys_pathname;
-    wchar_t w_pathname[PATH_SIZE];
-    environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &sys_pathname);
-    char pathname[PATH_SIZE];
-    strncpy(pathname, sys_pathname, PATH_SIZE);
-    if (pathname[(strlen(pathname)-1)] != '/' && pathname[(strlen(pathname)-1)] != '\\')
-        strcat(pathname, "/");
-    strcat(pathname, "Mupen64plus/");
-    mbstowcs(w_pathname, pathname, PATH_SIZE);
-    if (!osal_path_existsW(w_pathname) || !osal_is_directory(w_pathname))
-        osal_mkdirp(w_pathname);
-    copy_file(inifile, "mupen64plus.ini");
-
     struct retro_log_callback log;
     unsigned colorMode = RETRO_PIXEL_FORMAT_XRGB8888;
 

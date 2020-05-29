@@ -87,7 +87,7 @@ struct gl_cached_state
    {
       bool enabled[MAX_ATTRIB];
    } vertex_attrib_pointer;
-   
+
    struct
    {
       GLuint array;
@@ -98,7 +98,7 @@ struct gl_cached_state
       GLenum pname;
       GLint param;
    } pixelstore_i;
-   
+
    struct
    {
      GLint pack;
@@ -267,6 +267,8 @@ struct retro_hw_render_callback hw_render;
 static struct gl_cached_state gl_state;
 
 static bool copy_image_support = 0;
+
+/* TODO: Remove 8MiB allocation on stack. */
 static struct gl_program_uniforms program_uniforms[MAX_UNIFORMS][MAX_UNIFORMS];
 static struct gl_framebuffers* framebuffers[MAX_FRAMEBUFFERS];
 
@@ -1669,6 +1671,7 @@ GLuint rglCreateProgram(void)
    int i;
    for (i = 0; i < MAX_UNIFORMS; ++i)
       memset(&program_uniforms[temp][i], 0, sizeof(struct gl_program_uniforms));
+
    return temp;
 }
 
@@ -3118,7 +3121,7 @@ static void glsm_state_bind(void)
          }
       }
     }
-    
+
    glPixelStorei(GL_UNPACK_ALIGNMENT, gl_state.pixelstore.unpack);
    glPixelStorei(GL_PACK_ALIGNMENT, gl_state.pixelstore.pack);
 
@@ -3136,7 +3139,7 @@ static void glsm_state_bind(void)
       if (gl_state.cap_state[i])
          glEnable(gl_state.cap_translate[i]);
    }
-   
+
    if (gl_state.blendfunc.used)
       glBlendFunc(
             gl_state.blendfunc.sfactor,
@@ -3226,7 +3229,7 @@ static void glsm_state_unbind(void)
 
    if (gl_state.colormask.used)
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-      
+
    if (gl_state.blendfunc_separate.used)
       glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
 
@@ -3247,7 +3250,7 @@ static void glsm_state_unbind(void)
 
    glStencilMask(1);
    glFrontFace(GL_CCW);
-   
+
    if (gl_state.depthfunc.used)
       glDepthFunc(GL_LESS);
 
@@ -3332,7 +3335,7 @@ void* glsm_get_proc_address(const char* sym)
 {
    if (!hw_render.get_proc_address)
       return NULL;
-   
+
    return hw_render.get_proc_address(sym);
 }
 
@@ -3362,7 +3365,7 @@ bool glsm_ctl(enum glsm_state_ctl state, void *data)
       case GLSM_CTL_STATE_CONTEXT_RESET:
          rglgen_resolve_symbols(hw_render.get_proc_address);
          initGLFunctions();
-         
+
          if (window_first > 0) {
             resetting_context = 1;
             glsm_state_setup();
@@ -3371,7 +3374,7 @@ bool glsm_ctl(enum glsm_state_ctl state, void *data)
             resetting_context = 0;
 	      }
          else
-            window_first = 1; 
+            window_first = 1;
          break;
       case GLSM_CTL_STATE_CONTEXT_DESTROY:
          glsm_state_ctx_destroy(data);
