@@ -51,9 +51,6 @@
 #include "util.h"
 #include "workqueue.h"
 
-#include <unzip.h>
-#include <zip.h>
-
 enum { GB_CART_FINGERPRINT_SIZE = 0x1c };
 enum { GB_CART_FINGERPRINT_OFFSET = 0x134 };
 
@@ -98,9 +95,6 @@ static char *savestates_generate_path(savestates_type type)
         {
             case savestates_type_m64p:
                 filename = formatstr("%s.st%d", ROM_SETTINGS.goodname, slot);
-                break;
-            case savestates_type_pj64_zip:
-                filename = formatstr("%s.pj%d.zip", ROM_PARAMS.headername, slot);
                 break;
             case savestates_type_pj64_unc:
                 filename = formatstr("%s.pj%d", ROM_PARAMS.headername, slot);
@@ -1339,42 +1333,6 @@ static int savestates_load_pj64(struct device* dev,
     return 1;
 }
 
-static int read_data_from_zip(void *zip, void *buffer, size_t length)
-{
-    int err = unzReadCurrentFile((unzFile)zip, buffer, (unsigned)length);
-    return (err >= 0) && ((size_t)err == length);
-}
-
-static int savestates_load_pj64_zip(struct device* dev, char *filepath)
-{
-    char szFileName[256], szExtraField[256], szComment[256];
-    unzFile zipstatefile = NULL;
-    unz_file_info fileinfo;
-    int ret = 0;
-
-    /* Open the .zip file. */
-    zipstatefile = unzOpen(filepath);
-    if (zipstatefile == NULL ||
-        unzGoToFirstFile(zipstatefile) != UNZ_OK ||
-        unzGetCurrentFileInfo(zipstatefile, &fileinfo, szFileName, 255, szExtraField, 255, szComment, 255) != UNZ_OK ||
-        unzOpenCurrentFile(zipstatefile) != UNZ_OK)
-    {
-        main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "Zip error. Could not open state file: %s", filepath);
-        goto clean_and_exit;
-    }
-
-    if (!savestates_load_pj64(dev, filepath, zipstatefile, read_data_from_zip))
-        goto clean_and_exit;
-
-    main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "State loaded from: %s", namefrompath(filepath));
-    ret = 1;
-
-    clean_and_exit:
-        if (zipstatefile != NULL)
-            unzClose(zipstatefile);
-        return ret;
-}
-
 static int read_data_from_file(void *file, void *buffer, size_t length)
 {
     return fread(buffer, 1, length, file) == length;
@@ -1424,8 +1382,6 @@ static savestates_type savestates_detect_type(char *filepath)
 
     if (magic[0] == 0x1f && magic[1] == 0x8b) // GZIP header
         return savestates_type_m64p;
-    else if (memcmp(magic, "PK\x03\x04", 4) == 0) // ZIP header
-        return savestates_type_pj64_zip;
     else if (memcmp(magic, pj64_magic, 4) == 0) // PJ64 header
         return savestates_type_pj64_unc;
     else
@@ -1450,24 +1406,16 @@ int savestates_load(void)
         if (fPtr == NULL)
         {
             free(filepath);
-            // try PJ64 zipped type second
-            type = savestates_type_pj64_zip;
+            // finally, try PJ64 uncompressed
+            type = savestates_type_pj64_unc;
             filepath = savestates_generate_path(type);
             fPtr = fopen(filepath, "rb"); // can I open this?
             if (fPtr == NULL)
             {
                 free(filepath);
-                // finally, try PJ64 uncompressed
-                type = savestates_type_pj64_unc;
-                filepath = savestates_generate_path(type);
-                fPtr = fopen(filepath, "rb"); // can I open this?
-                if (fPtr == NULL)
-                {
-                    free(filepath);
-                    filepath = NULL;
-                    main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "No Mupen64Plus/PJ64 state file found for slot %i", slot);
-                    type = savestates_type_unknown;
-                }
+                filepath = NULL;
+                main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "No Mupen64Plus/PJ64 state file found for slot %i", slot);
+                type = savestates_type_unknown;
             }
         }
     }
@@ -1499,7 +1447,6 @@ int savestates_load(void)
         switch (type)
         {
             case savestates_type_m64p: ret = savestates_load_m64p(dev, filepath); break;
-            case savestates_type_pj64_zip: ret = savestates_load_pj64_zip(dev, filepath); break;
             case savestates_type_pj64_unc: ret = savestates_load_pj64_unc(dev, filepath); break;
             default: ret = 0; break;
         }
@@ -2123,44 +2070,6 @@ static int savestates_save_pj64(const struct device* dev,
     return 1;
 }
 
-static int write_data_to_zip(void *zip, const void *buffer, size_t length)
-{
-    return zipWriteInFileInZip((zipFile)zip, buffer, (unsigned)length) == ZIP_OK;
-}
-
-static int savestates_save_pj64_zip(const struct device* dev, char *filepath)
-{
-    int retval;
-    zipFile zipfile = NULL;
-
-    zipfile = zipOpen(filepath, APPEND_STATUS_CREATE);
-    if(zipfile == NULL)
-    {
-        main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "Could not create PJ64 state file: %s", filepath);
-        goto clean_and_exit;
-    }
-
-    retval = zipOpenNewFileInZip(zipfile, namefrompath(filepath), NULL, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION);
-    if(retval != ZIP_OK)
-    {
-        main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "Zip error. Could not create state file: %s", filepath);
-        goto clean_and_exit;
-    }
-
-    if (!savestates_save_pj64(dev, filepath, zipfile, write_data_to_zip))
-        goto clean_and_exit;
-
-    main_message(M64MSG_STATUS, OSD_BOTTOM_LEFT, "Saved state to: %s", namefrompath(filepath));
-
-    clean_and_exit:
-        if (zipfile != NULL)
-        {
-            zipCloseFileInZip(zipfile); // This may fail, but we don't care
-            zipClose(zipfile, "");
-        }
-        return 1;
-}
-
 static int write_data_to_file(void *file, const void *buffer, size_t length)
 {
     return fwrite(buffer, 1, length, (FILE *)file) == length;
@@ -2196,8 +2105,7 @@ int savestates_save(void)
 
     /* Can only save PJ64 savestates on VI / COMPARE interrupt.
        Otherwise try again in a little while. */
-    if ((type == savestates_type_pj64_zip ||
-         type == savestates_type_pj64_unc) &&
+    if (type == savestates_type_pj64_unc &&
         get_next_event_type(&dev->r4300.cp0.q) > COMPARE_INT)
         return 0;
 
@@ -2212,7 +2120,6 @@ int savestates_save(void)
         switch (type)
         {
             case savestates_type_m64p: ret = savestates_save_m64p(dev, filepath); break;
-            case savestates_type_pj64_zip: ret = savestates_save_pj64_zip(dev, filepath); break;
             case savestates_type_pj64_unc: ret = savestates_save_pj64_unc(dev, filepath); break;
             default: ret = 0; break;
         }
