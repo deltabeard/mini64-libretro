@@ -175,8 +175,7 @@ m64p_error open_rom(const unsigned char* romimage, unsigned int size)
     trim(ROM_PARAMS.headername); /* Remove trailing whitespace from ROM name. */
 
     /* Look up this ROM in the .ini file and fill in goodname, etc */
-    if ((entry=ini_search_by_md5(digest)) != NULL ||
-        (entry=ini_search_by_crc(tohl(ROM_HEADER.CRC1),tohl(ROM_HEADER.CRC2))) != NULL)
+    if ((entry=ini_search_by_crc(tohl(ROM_HEADER.CRC1),tohl(ROM_HEADER.CRC2))) != NULL)
     {
         strncpy(ROM_SETTINGS.goodname, entry->goodname, 255);
         ROM_SETTINGS.goodname[255] = '\0';
@@ -216,7 +215,7 @@ m64p_error open_rom(const unsigned char* romimage, unsigned int size)
     DebugMessage(M64MSG_INFO, "MD5: %s", ROM_SETTINGS.MD5);
     DebugMessage(M64MSG_INFO, "CRC: %08" PRIX32 " %08" PRIX32, tohl(ROM_HEADER.CRC1), tohl(ROM_HEADER.CRC2));
     DebugMessage(M64MSG_INFO, "Imagetype: %s", buffer);
-    DebugMessage(M64MSG_INFO, "Rom size: %d bytes (or %d Mb or %d Megabits)", g_rom_size, g_rom_size/1024/1024, g_rom_size/1024/1024*8);
+    DebugMessage(M64MSG_INFO, "Rom size: %d bytes (or %d MiB or %d Megabits)", g_rom_size, g_rom_size/1024/1024, g_rom_size/1024/1024*8);
     DebugMessage(M64MSG_VERBOSE, "ClockRate = %" PRIX32, tohl(ROM_HEADER.ClockRate));
     DebugMessage(M64MSG_INFO, "Version: %" PRIX32, tohl(ROM_HEADER.Release));
     if(tohl(ROM_HEADER.Manufacturer_ID) == 'N')
@@ -720,7 +719,7 @@ romdatabase_entry* ini_search_by_crc(unsigned int crc1, unsigned int crc2)
 {
     romdatabase_search* search;
 
-    if(!g_romdatabase.have_database) 
+    if(!g_romdatabase.have_database)
         return NULL;
 
     search = g_romdatabase.crc_lists[((crc1 >> 24) & 0xff)];
@@ -728,7 +727,7 @@ romdatabase_entry* ini_search_by_crc(unsigned int crc1, unsigned int crc2)
     while (search != NULL && search->entry.crc1 != crc1 && search->entry.crc2 != crc2)
         search = search->next_crc;
 
-    if(search == NULL) 
+    if(search == NULL)
         return NULL;
 
     return &(search->entry);

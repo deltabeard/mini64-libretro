@@ -1,2 +1,10 @@
 Simplify config settings
 Remove minizip.
+Change ini to compressed database
+	Only use CRC64 to look up database.
+	Design struct to hold data
+	Do not store Good Names. Users don't even see them.
+	When converting ini to database, sort hashes to increase binary search
+	speed.
+	Table of entries in struct array, array of CRC hashes in order of table
+	entries.

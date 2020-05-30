@@ -70,10 +70,6 @@
 
 #define ISHEXDEC ((codeLine[cursor]>='0') && (codeLine[cursor]<='9')) || ((codeLine[cursor]>='a') && (codeLine[cursor]<='f')) || ((codeLine[cursor]>='A') && (codeLine[cursor]<='F'))
 
-// Option entries
-#define OPTION_ENTRY_RDP_GLIDEN64 "gliden64"
-#define OPTION_ENTRY_RSP_HLE "hle"
-
 void log_fallback(enum retro_log_level level, const char *fmt, ...);
 
 struct retro_perf_callback perf_cb;
@@ -154,14 +150,6 @@ uint32_t EnableTxCacheCompression = 0;
 uint32_t ForceDisableExtraMem = 0;
 uint32_t EnableNativeResFactor = 0;
 uint32_t EnableN64DepthCompare = 0;
-
-// Overscan options
-#define GLN64_OVERSCAN_SCALING "0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|48|49|50"
-uint32_t EnableOverscan = 0;
-uint32_t OverscanTop = 0;
-uint32_t OverscanLeft = 0;
-uint32_t OverscanRight = 0;
-uint32_t OverscanBottom = 0;
 
 extern struct device g_dev;
 extern unsigned int r4300_emumode;
@@ -280,16 +268,6 @@ static void setup_variables(void)
 #endif // !defined(VC) && !defined(HAVE_OPENGLES)
         { CORE_NAME "-EnableTextureCache",
             "(GLN64) Cache Textures; True|False" },
-        { CORE_NAME "-EnableOverscan",
-            "(GLN64) Overscan; Enabled|Disabled" },
-        { CORE_NAME "-OverscanTop",
-            "(GLN64) Overscan Offset (Top); " GLN64_OVERSCAN_SCALING },
-        { CORE_NAME "-OverscanLeft",
-            "(GLN64) Overscan Offset (Left); " GLN64_OVERSCAN_SCALING },
-        { CORE_NAME "-OverscanRight",
-            "(GLN64) Overscan Offset (Right); " GLN64_OVERSCAN_SCALING },
-        { CORE_NAME "-OverscanBottom",
-            "(GLN64) Overscan Offset (Bottom); " GLN64_OVERSCAN_SCALING },
 
         { CORE_NAME "-MaxTxCacheSize",
 #if defined(VC)
@@ -1038,41 +1016,6 @@ static void update_variables(void)
             u_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
         else if (!strcmp(var.value, "C4"))
             u_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-    }
-
-    var.key = CORE_NAME "-EnableOverscan";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        EnableOverscan = !strcmp(var.value, "Enabled") ? 1 : 0;
-    }
-
-    var.key = CORE_NAME "-OverscanTop";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        OverscanTop = atoi(var.value);
-    }
-
-    var.key = CORE_NAME "-OverscanLeft";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        OverscanLeft = atoi(var.value);
-    }
-
-    var.key = CORE_NAME "-OverscanRight";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        OverscanRight = atoi(var.value);
-    }
-
-    var.key = CORE_NAME "-OverscanBottom";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        OverscanBottom = atoi(var.value);
     }
 
     var.key = CORE_NAME "-alt-map";

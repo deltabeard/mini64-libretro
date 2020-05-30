@@ -18,6 +18,7 @@ Config config;
 m64p_handle g_configVideoGeneral = nullptr;
 m64p_handle g_configVideoGliden64 = nullptr;
 
+// TODO: Remove unused configs
 bool Config_SetDefault()
 {
 	if (ConfigOpenSection("Video-General", &g_configVideoGeneral) != M64ERR_SUCCESS) {
