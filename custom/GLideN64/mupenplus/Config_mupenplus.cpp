@@ -111,7 +111,7 @@ void LoadCustomSettings(bool internal)
 extern "C" void Config_LoadConfig()
 {
 	u32 hacks = config.generalEmulation.hacks;
-	
+
 	config.resetToDefaults();
 	config.frameBufferEmulation.aspect = AspectRatio;
 	config.frameBufferEmulation.enable = EnableFBEmulation;
@@ -122,7 +122,7 @@ extern "C" void Config_LoadConfig()
 	config.generalEmulation.enableLegacyBlending = enableLegacyBlending;
 	config.generalEmulation.enableNoise = EnableNoiseEmulation;
 	config.generalEmulation.enableLOD = EnableLODEmulation;
-	
+
 	config.frameBufferEmulation.copyDepthToRDRAM = EnableCopyDepthToRDRAM;
 #if defined(GLES2) && !defined(ANDROID)
 	config.frameBufferEmulation.copyToRDRAM = Config::ctDisable;
@@ -145,7 +145,7 @@ extern "C" void Config_LoadConfig()
 #endif
 
 	config.textureFilter.txSaveCache = EnableTextureCache;
-	
+
 	config.textureFilter.txFilterMode = txFilterMode;
 	config.textureFilter.txEnhancementMode = txEnhancementMode;
 	config.textureFilter.txFilterIgnoreBG = txFilterIgnoreBG;
@@ -154,19 +154,6 @@ extern "C" void Config_LoadConfig()
 	config.textureFilter.txHiresFullAlphaChannel = txHiresFullAlphaChannel;
 	config.video.fxaa = EnableFXAA;
 	config.video.multisampling = MultiSampling;
-	
-    // Overscan
-    config.frameBufferEmulation.enableOverscan = EnableOverscan;
-    // NTSC
-    config.frameBufferEmulation.overscanNTSC.left = OverscanLeft;
-    config.frameBufferEmulation.overscanNTSC.right = OverscanRight;
-    config.frameBufferEmulation.overscanNTSC.top = OverscanTop;
-    config.frameBufferEmulation.overscanNTSC.bottom = OverscanBottom;
-    // PAL
-    config.frameBufferEmulation.overscanPAL.left = OverscanLeft;
-    config.frameBufferEmulation.overscanPAL.right = OverscanRight;
-    config.frameBufferEmulation.overscanPAL.top = OverscanTop;
-    config.frameBufferEmulation.overscanPAL.bottom = OverscanBottom;
 
 	config.graphics2D.correctTexrectCoords = CorrectTexrectCoords;
 	config.graphics2D.enableNativeResTexrects = enableNativeResTexrects;
