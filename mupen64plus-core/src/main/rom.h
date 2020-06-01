@@ -23,7 +23,6 @@
 #ifndef __ROM_H__
 #define __ROM_H__
 
-#include <md5.h>
 #include <stdint.h>
 
 #include "api/m64p_types.h"
@@ -38,10 +37,10 @@
 
 /* ROM Loading and Saving functions */
 
-m64p_error open_rom(const unsigned char* romimage, unsigned int size);
+m64p_error open_rom(const uint8_t *const romimage, size_t size);
 m64p_error close_rom(void);
 
-extern int g_rom_size;
+extern size_t g_rom_size;
 
 typedef struct _rom_params
 {
@@ -57,24 +56,14 @@ extern m64p_rom_header   ROM_HEADER;
 extern rom_params        ROM_PARAMS;
 extern m64p_rom_settings ROM_SETTINGS;
 
-/* Supported rom compressiontypes. */
-enum 
-{
-    UNCOMPRESSED,
-    ZIP_COMPRESSION,
-    GZIP_COMPRESSION,
-    BZIP2_COMPRESSION,
-    LZMA_COMPRESSION,
-    SZIP_COMPRESSION
-};
-
 /* Supported rom image types. */
-enum 
+enum image_type_e
 {
-    Z64IMAGE,
+    Z64IMAGE = 0,
     V64IMAGE,
     N64IMAGE
 };
+typedef enum image_type_e image_type;
 
 /* Supported CIC chips. */
 enum
@@ -89,7 +78,7 @@ enum
 /* Supported save types. */
 enum
 {
-    EEPROM_4KB,
+    EEPROM_4KB = 0,
     EEPROM_16KB,
     SRAM,
     FLASH_RAM,
@@ -111,62 +100,19 @@ enum
  */
 typedef struct
 {
-   char* goodname;
-   md5_byte_t md5[16];
-   md5_byte_t* refmd5;
-   char *cheats;
-   unsigned int crc1;
-   unsigned int crc2;
+   const char *cheats;
+   uint64_t crc;
    unsigned char status; /* Rom status on a scale from 0-5. */
    unsigned char savetype;
    unsigned char players; /* Local players 0-4, 2/3/4 way Netplay indicated by 5/6/7. */
-   unsigned char rumble; /* 0 - No, 1 - Yes boolean for rumble support. */
+   unsigned char rumble : 1; /* 0 - No, 1 - Yes boolean for rumble support. */
    unsigned char countperop;
    unsigned char disableextramem;
-   unsigned char transferpak; /* 0 - No, 1 - Yes boolean for transferpak support. */
-   unsigned char mempak; /* 0 - No, 1 - Yes boolean for mempak support. */
-   unsigned char biopak; /* 0 - No, 1 - Yes boolean for biopak support. */
+   unsigned char transferpak : 1; /* 0 - No, 1 - Yes boolean for transferpak support. */
+   unsigned char mempak : 1; /* 0 - No, 1 - Yes boolean for mempak support. */
+   unsigned char biopak : 1; /* 0 - No, 1 - Yes boolean for biopak support. */
    unsigned int sidmaduration;
-   uint32_t set_flags;
 } romdatabase_entry;
-
-#define ROMDATABASE_ENTRY_NONE          0ULL
-#define ROMDATABASE_ENTRY_GOODNAME      BIT(0)
-#define ROMDATABASE_ENTRY_CRC           BIT(1)
-#define ROMDATABASE_ENTRY_STATUS        BIT(2)
-#define ROMDATABASE_ENTRY_SAVETYPE      BIT(3)
-#define ROMDATABASE_ENTRY_PLAYERS       BIT(4)
-#define ROMDATABASE_ENTRY_RUMBLE        BIT(5)
-#define ROMDATABASE_ENTRY_COUNTEROP     BIT(6)
-#define ROMDATABASE_ENTRY_CHEATS        BIT(7)
-#define ROMDATABASE_ENTRY_EXTRAMEM      BIT(8)
-#define ROMDATABASE_ENTRY_TRANSFERPAK   BIT(9)
-#define ROMDATABASE_ENTRY_MEMPAK        BIT(10)
-#define ROMDATABASE_ENTRY_BIOPAK        BIT(11)
-#define ROMDATABASE_ENTRY_SIDMADURATION BIT(12)
-
-typedef struct _romdatabase_search
-{
-    romdatabase_entry entry;
-    struct _romdatabase_search* next_entry;
-    struct _romdatabase_search* next_crc;
-    struct _romdatabase_search* next_md5;
-} romdatabase_search;
-
-typedef struct
-{
-    int have_database;
-    romdatabase_search* crc_lists[256];
-    romdatabase_search* md5_lists[256];
-    romdatabase_search* list;
-} _romdatabase;
-
-void romdatabase_open(void);
-void romdatabase_close(void);
-/* Should be used by current cheat system (isn't), when cheat system is
- * migrated to md5s, will be fully depreciated.
- */
-romdatabase_entry* ini_search_by_crc(unsigned int crc1, unsigned int crc2);
 
 #endif /* __ROM_H__ */
 

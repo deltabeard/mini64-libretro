@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-                       
+
 /* This file contains the Core front-end functions which will be exported
  * outside of the core library.
  */
@@ -69,14 +69,12 @@ EXPORT m64p_error CALL CoreStartup(int APIVersion, const char *ConfigPath, const
                      VERSION_PRINTF_SPLIT(APIVersion), VERSION_PRINTF_SPLIT(FRONTEND_API_VERSION));
         return M64ERR_INCOMPATIBLE;
     }
-   
+
     /* allocate base memory */
     g_mem_base = init_mem_base();
     if (g_mem_base == NULL) {
         return M64ERR_NO_MEMORY;
-    } 
-    /* The ROM database contains MD5 hashes, goodnames, and some game-specific parameters */
-    romdatabase_open();
+    }
 
     workqueue_init();
 
@@ -90,7 +88,6 @@ EXPORT m64p_error CALL CoreShutdown(void)
         return M64ERR_NOT_INIT;
 
     /* close down some core sub-systems */
-    romdatabase_close();
     ConfigShutdown();
     workqueue_shutdown();
     savestates_deinit();
@@ -279,37 +276,4 @@ EXPORT m64p_error CALL CoreCheatEnabled(const char *CheatName, int Enabled)
 
     return M64ERR_INPUT_INVALID;
 }
-
-EXPORT m64p_error CALL CoreGetRomSettings(m64p_rom_settings *RomSettings, int RomSettingsLength, int Crc1, int Crc2)
-{
-    romdatabase_entry* entry;
-    int i;
-
-    if (!l_CoreInit)
-        return M64ERR_NOT_INIT;
-    if (RomSettings == NULL)
-        return M64ERR_INPUT_ASSERT;
-    if (RomSettingsLength < sizeof(m64p_rom_settings))
-        return M64ERR_INPUT_INVALID;
-
-    /* Look up this ROM in the .ini file and fill in goodname, etc */
-    entry = ini_search_by_crc(Crc1, Crc2);
-    if (entry == NULL)
-        return M64ERR_INPUT_NOT_FOUND;
-
-    strncpy(RomSettings->goodname, entry->goodname, 255);
-    RomSettings->goodname[255] = '\0';
-    for (i = 0; i < 16; i++)
-        sprintf(RomSettings->MD5 + i*2, "%02X", entry->md5[i]);
-    RomSettings->MD5[32] = '\0';
-    RomSettings->savetype = entry->savetype;
-    RomSettings->status = entry->status;
-    RomSettings->players = entry->players;
-    RomSettings->rumble = entry->rumble;
-    RomSettings->transferpak = entry->transferpak;
-    RomSettings->mempak = entry->mempak;
-
-    return M64ERR_SUCCESS;
-}
-
 

@@ -57,7 +57,7 @@ file_status_t read_from_file(const char *filename, void *data, size_t size);
 /** write_to_file
  *    opens a file and writes the specified number of bytes.
  *    returns zero on success, nonzero on failure
- */ 
+ */
 file_status_t write_to_file(const char *filename, const void *data, size_t size);
 
 /** load_file
@@ -140,8 +140,7 @@ void to_big_endian_buffer(void *buffer, size_t length, size_t count);
 /**********************
      GUI utilities
  **********************/
-void countrycodestring(uint16_t countrycode, char *string);
-void imagestring(unsigned char imagetype, char *string);
+const char *countrycodestring(uint16_t countrycode);
 
 /**********************
      Path utilities

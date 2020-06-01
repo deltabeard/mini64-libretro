@@ -304,10 +304,12 @@ SOURCES_CXX   += \
     $(VIDEODIR_GLIDEN64)/src/uCodes/Turbo3D.cpp                                                   \
     $(VIDEODIR_GLIDEN64)/src/uCodes/ZSort.cpp                                                     \
     $(VIDEODIR_GLIDEN64)/src/uCodes/ZSortBOSS.cpp                                                 \
-	$(VIDEODIR_GLIDEN64)/src/MupenPlusPluginAPI.cpp                                               \
-	$(VIDEODIR_GLIDEN64)/src/mupenplus/MupenPlusAPIImpl.cpp                                       \
-	$(ROOT_DIR)/custom/GLideN64/mupenplus/Config_mupenplus.cpp                                    \
-	$(ROOT_DIR)/custom/GLideN64/mupenplus/CommonAPIImpl_mupenplus.cpp
+    $(VIDEODIR_GLIDEN64)/src/MupenPlusPluginAPI.cpp                                               \
+    $(VIDEODIR_GLIDEN64)/src/mupenplus/MupenPlusAPIImpl.cpp                                       \
+    $(ROOT_DIR)/custom/GLideN64/mupenplus/Config_mupenplus.cpp                                    \
+    $(ROOT_DIR)/custom/GLideN64/mupenplus/CommonAPIImpl_mupenplus.cpp                             \
+    $(VIDEODIR_GLIDEN64)/src/RSP_LoadMatrix.cpp
+
 ifneq (,$(findstring android,$(platform)))
 	SOURCES_CXX += $(VIDEODIR_GLIDEN64)/src/GLideNHQ/txWidestringWrapper.cpp \
 		$(VIDEODIR_GLIDEN64)/src/Log_android.cpp
@@ -315,6 +317,7 @@ else
 	SOURCES_CXX += $(VIDEODIR_GLIDEN64)/src/Log.cpp
 endif
 
+ifneq ($(NODHQ),1)
 SOURCES_CXX   += \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TextureFilters.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TextureFilters_2xsai.cpp \
@@ -330,8 +333,8 @@ SOURCES_CXX   += \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxQuantize.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxReSample.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxTexCache.cpp \
-	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp \
-	$(VIDEODIR_GLIDEN64)/src/RSP_LoadMatrix.cpp
+	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp
+endif
 
 SOURCES_C += \
 	$(RSPDIR)/src/alist.c \

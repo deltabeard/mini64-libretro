@@ -34,7 +34,6 @@ CoreDetachPlugin;
 CoreDoCommand;
 CoreErrorMessage;
 CoreGetAPIVersions;
-CoreGetRomSettings;
 CoreOverrideVidExt;
 CoreShutdown;
 CoreStartup;

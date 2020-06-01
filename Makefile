@@ -1,6 +1,7 @@
 DEBUG = 0
 USE_GLES ?= 0
 USE_GLES3 ?= 0
+NODHQ ?= 1
 
 HAVE_LTCG ?= 0
 DYNAFLAGS :=
@@ -43,6 +44,10 @@ else ifeq ($(USE_GLRPI),1)
 	LDFLAGS += -ldl
 else
 	err := $(error Either OpenGL or OpenGLES is required, but neither could be found)
+endif
+
+ifeq ($(NODHQ),1)
+	COREFLAGS += -DNODHQ
 endif
 
 # Assume platform is unix if not set to win previously, or forced by user.
