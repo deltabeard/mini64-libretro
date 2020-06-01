@@ -31,6 +31,7 @@ std::string replaceChars(std::string myString)
 	return myString;
 }
 
+/* FIXME: Remove ini. */
 void LoadCustomSettings(bool internal)
 {
 	std::string myString = replaceChars(RSP.romname);
