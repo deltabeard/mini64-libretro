@@ -44,7 +44,7 @@ extern size_t g_rom_size;
 
 typedef struct _rom_params
 {
-   char *cheats;
+   const char *cheats;
    m64p_system_type systemtype;
    char headername[21];  /* ROM Name as in the header, removing trailing whitespace */
    unsigned char countperop;

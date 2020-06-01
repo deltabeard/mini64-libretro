@@ -81,7 +81,7 @@ int compare_entry(const void *in1, const void *in2)
     const uint64_t *c2 = in2;
     int64_t rem;
 
-    bool overflow = __builtin_usubll_overflow(c1, c2, &rem);
+    bool overflow = __builtin_sub_overflow(*c1, *c2, &rem);
     if(overflow || rem < 0)
         return -1;
     else if(rem > 0)
@@ -93,13 +93,15 @@ int compare_entry(const void *in1, const void *in2)
 int get_rom_settings(uint64_t crc, romdatabase_entry *entry)
 {
     size_t nmemb = sizeof(rom_crc)/sizeof(*rom_crc);
-    uint64_t *crc_start = rom_crc;
+    const uint64_t *const crc_start = rom_crc;
     uint64_t *crc_ret;
     const struct rom_entry_s *r;
 
     crc_ret = bsearch(&crc, rom_crc, nmemb, sizeof(*rom_crc), compare_entry);
     if(crc_ret == NULL)
         return -1;
+
+    DebugMessage(M64MSG_VERBOSE, "Special settings were found for this ROM.");
 
     r = &rom_dat[crc_ret - crc_start];
     entry->status = r->status;
@@ -169,7 +171,7 @@ static void swap_copy_rom(void* dst, const void* src, size_t len, image_type* im
 
 m64p_error open_rom(const uint8_t *const romimage, size_t size)
 {
-    romdatabase_entry* entry;
+    romdatabase_entry entry;
     image_type imgtype;
     uint64_t crc64;
     const char *const image_string[] = {
@@ -191,7 +193,9 @@ m64p_error open_rom(const uint8_t *const romimage, size_t size)
     /* ROM is now in N64 native (big endian) byte order */
 
     memcpy(&ROM_HEADER, (uint8_t*)mem_base_u32(g_mem_base, MM_CART_ROM), sizeof(m64p_rom_header));
-    crc64 = ((uint64_t)tohl(ROM_HEADER.CRC1) << 32) || tohl(ROM_HEADER.CRC2);
+    crc64 = tohl(ROM_HEADER.CRC1);
+    crc64 <<= 32;
+    crc64 |= tohl(ROM_HEADER.CRC2);
 
     memcpy(ROM_PARAMS.headername, ROM_HEADER.Name, 20);
     ROM_PARAMS.headername[20] = '\0';
@@ -199,17 +203,17 @@ m64p_error open_rom(const uint8_t *const romimage, size_t size)
     /* FIXME: Skip the middleman: set ROM_SETTINGS directly. */
     if(get_rom_settings(crc64, &entry) == 0)
     {
-        ROM_SETTINGS.savetype = entry->savetype;
-        ROM_SETTINGS.status = entry->status;
-        ROM_SETTINGS.players = entry->players;
-        ROM_SETTINGS.rumble = entry->rumble;
-        ROM_SETTINGS.transferpak = entry->transferpak;
-        ROM_SETTINGS.mempak = entry->mempak;
-        ROM_SETTINGS.biopak = entry->biopak;
-        ROM_PARAMS.countperop = entry->countperop;
-        ROM_PARAMS.disableextramem = entry->disableextramem;
-        ROM_PARAMS.sidmaduration = entry->sidmaduration;
-        ROM_PARAMS.cheats = entry->cheats;
+        ROM_SETTINGS.savetype = entry.savetype;
+        ROM_SETTINGS.status = entry.status;
+        ROM_SETTINGS.players = entry.players;
+        ROM_SETTINGS.rumble = entry.rumble;
+        ROM_SETTINGS.transferpak = entry.transferpak;
+        ROM_SETTINGS.mempak = entry.mempak;
+        ROM_SETTINGS.biopak = entry.biopak;
+        ROM_PARAMS.countperop = entry.countperop;
+        ROM_PARAMS.disableextramem = entry.disableextramem;
+        ROM_PARAMS.sidmaduration = entry.sidmaduration;
+        ROM_PARAMS.cheats = entry.cheats;
     }
     else
     {
@@ -230,7 +234,8 @@ m64p_error open_rom(const uint8_t *const romimage, size_t size)
 
     /* print out a bunch of info about the ROM */
     DebugMessage(M64MSG_INFO, "Name: %s", ROM_HEADER.Name);
-    DebugMessage(M64MSG_INFO, "CRC: %016" PRIX64, crc64);
+    DebugMessage(M64MSG_INFO, "CRC: %08" PRIX64 " %08" PRIX64,
+		    crc64 >> 32, crc64 & 0xFFFFFFFF);
     DebugMessage(M64MSG_INFO, "Imagetype: %s", image_string[imgtype]);
     DebugMessage(M64MSG_INFO, "Rom size: %zu bytes (%zu MiB)", g_rom_size, g_rom_size/1024/1024);
     DebugMessage(M64MSG_VERBOSE, "ClockRate = %" PRIX32, tohl(ROM_HEADER.ClockRate));
