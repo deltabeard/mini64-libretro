@@ -122,11 +122,6 @@ SOURCES_C = \
 AWK_DEST_DIR    := $(CORE_DIR)/src/asm_defines
 ASM_DEFINES_OBJ := $(AWK_DEST_DIR)/asm_defines.o
 
-# MD5 lib
-SOURCES_C += \
-	$(CORE_DIR)/subprojects/md5/md5.c
-COREFLAGS += -I$(CORE_DIR)/subprojects/md5
-
 # xxHash
 SOURCES_C += \
 	$(CORE_DIR)/subprojects/xxhash/xxhash.c

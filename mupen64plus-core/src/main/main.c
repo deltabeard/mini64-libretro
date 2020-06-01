@@ -70,7 +70,6 @@
 #endif
 #include "rom.h"
 #include "savestates.h"
-#include "screenshot.h"
 #include "util.h"
 
 #include <libretro_private.h>
@@ -127,7 +126,6 @@ int g_gs_vi_counter = 0;
 
 /** static (local) variables **/
 static int   l_CurrentFrame = 0;         // frame counter
-static int   l_TakeScreenshot = 0;       // Tell OSD Rendering callback to take a screenshot just before drawing the OSD
 static int   l_SpeedFactor = 100;        // percentage of nominal game speed at which emulator is running
 static int   l_FrameAdvance = 0;         // variable to check if we pause on next frame
 static int   l_MainSpeedLimit = 1;       // insert delay during vi_interrupt to keep speed at real-time
@@ -315,13 +313,6 @@ static void main_draw_volume_osd(void)
     return;
 }
 
-/* this function could be called as a result of a keypress, joystick/button movement,
-   LIRC command, or 'testshots' command-line option timer */
-void main_take_next_screenshot(void)
-{
-    l_TakeScreenshot = l_CurrentFrame + 1;
-}
-
 void main_state_set_slot(int slot)
 {
     if (slot < 0 || slot > 9)
@@ -390,7 +381,7 @@ m64p_error main_core_state_query(m64p_core_param param, int *rval)
         case M64CORE_AUDIO_VOLUME:
         {
             if (!g_EmulatorRunning)
-                return M64ERR_INVALID_STATE;    
+                return M64ERR_INVALID_STATE;
             return main_volume_get_level(rval);
         }
         case M64CORE_AUDIO_MUTE:
@@ -418,7 +409,7 @@ m64p_error main_core_state_set(m64p_core_param param, int val)
             if (!g_EmulatorRunning)
                 return M64ERR_INVALID_STATE;
             if (val == M64EMU_STOPPED)
-            {        
+            {
                 /* this stop function is asynchronous.  The emulator may not terminate until later */
                 main_stop();
                 return M64ERR_SUCCESS;
@@ -430,7 +421,7 @@ m64p_error main_core_state_set(m64p_core_param param, int val)
                 return M64ERR_SUCCESS;
             }
             else if (val == M64EMU_PAUSED)
-            {    
+            {
                 if (!main_is_paused())
                     main_toggle_pause();
                 return M64ERR_SUCCESS;
@@ -838,7 +829,7 @@ static void load_dd_disk(struct file_storage* dd_disk, const struct storage_back
         close_file_storage(dd_disk);
         goto no_disk;
     }
-    
+
     DebugMessage(M64MSG_INFO, "DD Disk: %s - %u - %s",
             dd_disk->filename,
             dd_disk->size,
@@ -1058,7 +1049,7 @@ m64p_error main_run(void)
     extern void set_audio_format_via_libretro(void* user_data, unsigned int frequency, unsigned int bits);
     extern void push_audio_samples_via_libretro(void* user_data, const void* buffer, size_t size);
     audio_out_backend_libretro = (struct audio_out_backend_interface){ set_audio_format_via_libretro, push_audio_samples_via_libretro };
-    
+
     /* Fill-in l_pak_type_idx and l_ipaks according to game compatibility */
     k = 0;
     if (ROM_SETTINGS.biopak) {
