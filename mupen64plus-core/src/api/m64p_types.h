@@ -70,11 +70,11 @@ typedef enum {
 } m64p_type;
 
 typedef enum {
-  M64MSG_ERROR = 1,
-  M64MSG_WARNING,
+  M64MSG_VERBOSE = -1,
+  M64MSG_STATUS = 0,
   M64MSG_INFO,
-  M64MSG_STATUS,
-  M64MSG_VERBOSE
+  M64MSG_WARNING,
+  M64MSG_ERROR
 } m64p_msg_level;
 
 typedef enum {

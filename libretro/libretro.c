@@ -100,7 +100,6 @@ static bool     emu_initialized     = false;
 static unsigned initial_boot        = true;
 static unsigned audio_buffer_size   = 2048;
 
-static unsigned retro_filtering     = 0;
 static bool     first_context_reset = false;
 static bool     initializing        = true;
 
@@ -190,8 +189,13 @@ static void n64DebugCallback(void* aContext, int aLevel, const char* aMessage)
 {
     char buffer[256];
     snprintf(buffer, 256, CORE_NAME ": %s\n", aMessage);
+    (void)aContext;
+
+    if(aLevel < 0)
+        return;
+
     if (log_cb)
-        log_cb(RETRO_LOG_INFO, buffer);
+        log_cb(aLevel, buffer);
 }
 
 extern m64p_rom_header ROM_HEADER;
@@ -417,14 +421,33 @@ const char* retro_get_system_directory(void)
     return dir ? dir : ".";
 }
 
+void retro_set_video_refresh(retro_video_refresh_t cb)
+{
+	video_cb = cb;
+}
 
-void retro_set_video_refresh(retro_video_refresh_t cb) { video_cb = cb; }
-void retro_set_audio_sample(retro_audio_sample_t cb)   { }
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { audio_batch_cb = cb; }
-void retro_set_input_poll(retro_input_poll_t cb) { poll_cb = cb; }
-void retro_set_input_state(retro_input_state_t cb) { input_cb = cb; }
+void retro_set_audio_sample(retro_audio_sample_t cb)
+{
+	(void)cb;
+}
 
-bool retro_load_game_special(unsigned game_type, const struct retro_game_info *info, size_t num_info)
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
+{
+	audio_batch_cb = cb;
+}
+
+void retro_set_input_poll(retro_input_poll_t cb)
+{
+	poll_cb = cb;
+}
+
+void retro_set_input_state(retro_input_state_t cb)
+{
+	input_cb = cb;
+}
+
+bool retro_load_game_special(unsigned game_type,
+		const struct retro_game_info *info, size_t num_info)
 {
     if(retro_dd_path_img)
     {
@@ -453,7 +476,6 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info *i
                 return false;
             }
 
-            printf("Loading %s...\n", info[0].path);
             load_file(info[1].path, (void**)&info[1].data, &info[1].size);
             return retro_load_game(&info[1]);
         default:
@@ -1072,6 +1094,7 @@ static void context_destroy(void)
 
 static bool context_framebuffer_lock(void *data)
 {
+    (void)data;
     //if (!stop)
      //   return false;
     return true;
@@ -1207,26 +1230,22 @@ size_t retro_serialize_size (void)
 
 bool retro_serialize(void *data, size_t size)
 {
+    (void)size;
+
     if (initializing)
         return false;
 
-    int success = savestates_save_m64p(&g_dev, data);
-    if (success)
-        return true;
-
-    return false;
+    return savestates_save_m64p(&g_dev, data) == true;
 }
 
 bool retro_unserialize(const void * data, size_t size)
 {
+    (void)size;
+
     if (initializing)
         return false;
 
-    int success = savestates_load_m64p(&g_dev, data);
-    if (success)
-        return true;
-
-    return false;
+    return savestates_load_m64p(&g_dev, data) == true;
 }
 
 //Needed to be able to detach controllers for Lylat Wars multiplayer
@@ -1257,7 +1276,10 @@ void retro_set_controller_port_device(unsigned in_port, unsigned device) {
     }
 }
 
-unsigned retro_api_version(void) { return RETRO_API_VERSION; }
+unsigned retro_api_version(void)
+{
+    return RETRO_API_VERSION;
+}
 
 void retro_cheat_reset(void)
 {
@@ -1273,7 +1295,7 @@ void retro_cheat_set(unsigned index, bool enabled, const char* codeLine)
     int cursor;
 
     //Generate a name
-    sprintf(name, "cheat_%u",index);
+    snprintf(name, sizeof(name), "cheat_%u", index);
 
     //Break the code into Parts
     for (cursor=0;;cursor++)
