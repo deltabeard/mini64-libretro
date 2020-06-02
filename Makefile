@@ -1,7 +1,7 @@
 DEBUG = 0
 USE_GLES ?= 0
 USE_GLES3 ?= 0
-NODHQ ?= 1
+NODHQ ?= 0
 
 HAVE_LTCG ?= 0
 DYNAFLAGS :=
