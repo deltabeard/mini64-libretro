@@ -116,7 +116,7 @@ typedef struct {
        It should not modify SP_STATUS_REG after ProcessDList has returned.
        This will allow the GFX plugin to unset these bits if it needs. */
     unsigned int * SP_STATUS_REG;
-    const unsigned int * RDRAM_SIZE;
+    unsigned long * RDRAM_SIZE;
 } GFX_INFO;
 
 typedef struct {
