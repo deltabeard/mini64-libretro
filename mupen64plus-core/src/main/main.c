@@ -835,7 +835,7 @@ extern audio_plugin_functions dummy_audio;
 
 unsigned int r4300_emumode;
 
-unsigned long rdram_size;
+uint32_t rdram_size;
 struct file_storage eep;
 struct file_storage fla;
 struct file_storage sra;
