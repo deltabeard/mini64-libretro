@@ -87,37 +87,7 @@ SOURCES_C = \
 	$(CORE_DIR)/src/main/savestates.c \
 	$(CORE_DIR)/src/plugin/plugin.c \
 	$(CORE_DIR)/src/plugin/dummy_audio.c \
-	$(CORE_DIR)/src/plugin/dummy_input.c \
-	$(ZLIB_DIR)/adler32.c \
-	$(ZLIB_DIR)/compress.c \
-	$(ZLIB_DIR)/crc32.c \
-	$(ZLIB_DIR)/deflate.c \
-	$(ZLIB_DIR)/gzclose.c \
-	$(ZLIB_DIR)/gzlib.c \
-	$(ZLIB_DIR)/gzread.c \
-	$(ZLIB_DIR)/gzwrite.c \
-	$(ZLIB_DIR)/infback.c \
-	$(ZLIB_DIR)/inffast.c \
-	$(ZLIB_DIR)/inflate.c \
-	$(ZLIB_DIR)/inftrees.c \
-	$(ZLIB_DIR)/trees.c \
-	$(ZLIB_DIR)/uncompr.c \
-	$(ZLIB_DIR)/zutil.c \
-	$(PNG_DIR)/png.c \
-	$(PNG_DIR)/pngerror.c \
-	$(PNG_DIR)/pngget.c \
-	$(PNG_DIR)/pngmem.c \
-	$(PNG_DIR)/pngpread.c \
-	$(PNG_DIR)/pngread.c \
-	$(PNG_DIR)/pngrio.c \
-	$(PNG_DIR)/pngrtran.c \
-	$(PNG_DIR)/pngrutil.c \
-	$(PNG_DIR)/pngset.c \
-	$(PNG_DIR)/pngtrans.c \
-	$(PNG_DIR)/pngwio.c \
-	$(PNG_DIR)/pngwrite.c \
-	$(PNG_DIR)/pngwtran.c \
-	$(PNG_DIR)/pngwutil.c
+	$(CORE_DIR)/src/plugin/dummy_input.c
 
 AWK_DEST_DIR    := $(CORE_DIR)/src/asm_defines
 ASM_DEFINES_OBJ := $(AWK_DEST_DIR)/asm_defines.o
@@ -201,7 +171,7 @@ SOURCES_C += $(LIBRETRO_DIR)/libretro.c \
 
 	
 SOURCES_CXX   += \
-	$(VIDEODIR_GLIDEN64)/src/Combiner.cpp                                                         \
+	$(VIDEODIR_GLIDEN64)/src/Combiner.cpp                                                     \
     $(VIDEODIR_GLIDEN64)/src/CombinerKey.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/CommonPluginAPI.cpp                                                  \
     $(VIDEODIR_GLIDEN64)/src/Config.cpp                                                           \
@@ -328,7 +298,37 @@ SOURCES_CXX   += \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxQuantize.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxReSample.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxTexCache.cpp \
-	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp
+	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp \
+	$(ZLIB_DIR)/adler32.c \
+	$(ZLIB_DIR)/compress.c \
+	$(ZLIB_DIR)/crc32.c \
+	$(ZLIB_DIR)/deflate.c \
+	$(ZLIB_DIR)/gzclose.c \
+	$(ZLIB_DIR)/gzlib.c \
+	$(ZLIB_DIR)/gzread.c \
+	$(ZLIB_DIR)/gzwrite.c \
+	$(ZLIB_DIR)/infback.c \
+	$(ZLIB_DIR)/inffast.c \
+	$(ZLIB_DIR)/inflate.c \
+	$(ZLIB_DIR)/inftrees.c \
+	$(ZLIB_DIR)/trees.c \
+	$(ZLIB_DIR)/uncompr.c \
+	$(ZLIB_DIR)/zutil.c \
+	$(PNG_DIR)/png.c \
+	$(PNG_DIR)/pngerror.c \
+	$(PNG_DIR)/pngget.c \
+	$(PNG_DIR)/pngmem.c \
+	$(PNG_DIR)/pngpread.c \
+	$(PNG_DIR)/pngread.c \
+	$(PNG_DIR)/pngrio.c \
+	$(PNG_DIR)/pngrtran.c \
+	$(PNG_DIR)/pngrutil.c \
+	$(PNG_DIR)/pngset.c \
+	$(PNG_DIR)/pngtrans.c \
+	$(PNG_DIR)/pngwio.c \
+	$(PNG_DIR)/pngwrite.c \
+	$(PNG_DIR)/pngwtran.c \
+	$(PNG_DIR)/pngwutil.c
 endif
 
 SOURCES_C += \
