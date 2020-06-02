@@ -36,8 +36,6 @@ typedef enum _savestates_type
 {
     savestates_type_unknown,
     savestates_type_m64p,
-    savestates_type_pj64_zip,
-    savestates_type_pj64_unc
 } savestates_type;
 
 savestates_job savestates_get_job(void);
