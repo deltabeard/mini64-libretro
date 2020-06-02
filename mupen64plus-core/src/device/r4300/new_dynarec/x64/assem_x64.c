@@ -739,8 +739,14 @@ static void output_w32(u_int word)
 }
 static void output_w64(uint64_t dword)
 {
-  *((uint64_t *)out)=dword;
-  out+=8;
+  *(out++) = (dword >> 0) & 0xFF;
+  *(out++) = (dword >> 8) & 0xFF;
+  *(out++) = (dword >> 16) & 0xFF;
+  *(out++) = (dword >> 24) & 0xFF;
+  *(out++) = (dword >> 32) & 0xFF;
+  *(out++) = (dword >> 40) & 0xFF;
+  *(out++) = (dword >> 48) & 0xFF;
+  *(out++) = (dword >> 56) & 0xFF;
 }
 
 static void emit_mov(int rs,int rt)
