@@ -849,53 +849,6 @@ int savestates_load_m64p(struct device* dev, const void *data)
             dev->rdram.regs[i][RDRAM_DEVICE_MANUF_REG] = GETDATA(curr, uint32_t);
         }
 
-        if (version >= 0x00010400) {
-            /* verify if DD data is present (and matches what's currently loaded) */
-            uint32_t disk_id = GETDATA(curr, uint32_t);
-
-            uint32_t* current_disk_id = ((dev->dd.rom_size > 0) && dev->dd.idisk != NULL)
-                ? (uint32_t*)(dev->dd.idisk->data(dev->dd.disk) + DD_DISK_ID_OFFSET)
-                : NULL;
-
-            if (current_disk_id != NULL && *current_disk_id == disk_id) {
-                dev->dd.regs[DD_ASIC_DATA] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_MISC_REG] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_CMD_STATUS] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_CUR_TK] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_BM_STATUS_CTL] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_ERR_SECTOR] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_SEQ_STATUS_CTL] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_CUR_SECTOR] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_HARD_RESET] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_C1_S0] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_HOST_SECBYTE] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_C1_S2] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_SEC_BYTE] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_C1_S4] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_C1_S6] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_CUR_ADDR] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_ID_REG] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_TEST_REG] = GETDATA(curr, uint32_t);
-                dev->dd.regs[DD_ASIC_TEST_PIN_SEL] = GETDATA(curr, uint32_t);
-
-                /* C2S buffer is expected to be always zero */
-                memset(dev->dd.c2s_buf, 0, 0x400);
-                COPYARRAY(dev->dd.ds_buf, curr, uint8_t, 0x100);
-                COPYARRAY(dev->dd.ms_ram, curr, uint8_t, 0x40);
-
-                dev->dd.rtc.now = (time_t)GETDATA(curr, int64_t);
-                dev->dd.rtc.last_update_rtc = (time_t)GETDATA(curr, int64_t);
-                dev->dd.bm_write = (unsigned char)GETDATA(curr, uint32_t);
-                dev->dd.bm_reset_held = (unsigned char)GETDATA(curr, uint32_t);
-                dev->dd.bm_block = (unsigned char)GETDATA(curr, uint32_t);
-                dev->dd.bm_zone = GETDATA(curr, uint32_t);
-                dev->dd.bm_track_offset = GETDATA(curr, uint32_t);
-            }
-            else {
-                curr += (3+DD_ASIC_REGS_COUNT)*sizeof(uint32_t) + 0x100 + 0x40 + 2*sizeof(int64_t) + 2*sizeof(unsigned int);
-            }
-        }
-
         if (version >= 0x00010500)
         {
 #ifdef NEW_DYNAREC
@@ -960,11 +913,6 @@ int savestates_load_m64p(struct device* dev, const void *data)
         for (i = 0; i < RDRAM_MAX_MODULES_COUNT; ++i) {
             memcpy(dev->rdram.regs[i], dev->rdram.regs[0], RDRAM_REGS_COUNT*sizeof(dev->rdram.regs[0][0]));
             dev->rdram.regs[i][RDRAM_DEVICE_ID_REG] = ri_address_to_id_field(i * 0x200000) << 2;
-        }
-
-        /* dd state */
-        if (dev->dd.rom_size > 0 && dev->dd.idisk != NULL) {
-            poweron_dd(&dev->dd);
         }
     }
 
@@ -1318,11 +1266,6 @@ static int savestates_load_pj64(struct device* dev,
     for (i = 0; i < (SaveRDRAMSize / 0x200000); ++i) {
         memcpy(dev->rdram.regs[i], dev->rdram.regs[0], RDRAM_REGS_COUNT*sizeof(dev->rdram.regs[0][0]));
         dev->rdram.regs[i][RDRAM_DEVICE_ID_REG] = ri_address_to_id_field(i * 0x200000) << 2;
-    }
-
-    /* dd state */
-    if (dev->dd.rom_size > 0 && dev->dd.idisk != NULL) {
-        poweron_dd(&dev->dd);
     }
 
     savestates_load_set_pc(&dev->r4300, *r4300_cp0_last_addr(&dev->r4300.cp0));
@@ -1847,49 +1790,6 @@ int savestates_save_m64p(const struct device* dev, void *data)
         PUTDATA(curr, uint32_t, dev->rdram.regs[i][RDRAM_MIN_INTERVAL_REG]);
         PUTDATA(curr, uint32_t, dev->rdram.regs[i][RDRAM_ADDR_SELECT_REG]);
         PUTDATA(curr, uint32_t, dev->rdram.regs[i][RDRAM_DEVICE_MANUF_REG]);
-    }
-
-    uint32_t* disk_id = ((dev->dd.rom_size > 0) && dev->dd.idisk != NULL)
-        ? (uint32_t*)(dev->dd.idisk->data(dev->dd.disk) + DD_DISK_ID_OFFSET)
-        : NULL;
-
-    if (disk_id == NULL) {
-        PUTDATA(curr, uint32_t, 0);
-        curr += (3+DD_ASIC_REGS_COUNT)*sizeof(uint32_t) + 0x100 + 0x40 + 2*sizeof(int64_t) + 2*sizeof(uint32_t);
-    }
-    else {
-        PUTDATA(curr, uint32_t, *disk_id);
-
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_DATA]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_MISC_REG]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_CMD_STATUS]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_CUR_TK]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_BM_STATUS_CTL]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_ERR_SECTOR]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_SEQ_STATUS_CTL]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_CUR_SECTOR]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_HARD_RESET]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_C1_S0]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_HOST_SECBYTE]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_C1_S2]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_SEC_BYTE]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_C1_S4]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_C1_S6]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_CUR_ADDR]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_ID_REG]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_TEST_REG]);
-        PUTDATA(curr, uint32_t, dev->dd.regs[DD_ASIC_TEST_PIN_SEL]);
-
-        PUTARRAY(dev->dd.ds_buf, curr, uint8_t, 0x100);
-        PUTARRAY(dev->dd.ms_ram, curr, uint8_t, 0x40);
-
-        PUTDATA(curr, int64_t, (int64_t)dev->dd.rtc.now);
-        PUTDATA(curr, int64_t, (int64_t)dev->dd.rtc.last_update_rtc);
-        PUTDATA(curr, uint32_t, dev->dd.bm_write);
-        PUTDATA(curr, uint32_t, dev->dd.bm_reset_held);
-        PUTDATA(curr, uint32_t, dev->dd.bm_block);
-        PUTDATA(curr, uint32_t, dev->dd.bm_zone);
-        PUTDATA(curr, uint32_t, dev->dd.bm_track_offset);
     }
 
 #ifdef NEW_DYNAREC

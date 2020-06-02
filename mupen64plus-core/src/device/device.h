@@ -31,7 +31,6 @@
 #include "controllers/paks/mempak.h"
 #include "controllers/paks/rumblepak.h"
 #include "controllers/paks/transferpak.h"
-#include "dd/dd_controller.h"
 #include "gb/gb_cart.h"
 #include "memory/memory.h"
 #include "pif/pif.h"
@@ -107,8 +106,6 @@ struct device
     struct gb_cart gb_carts[GAME_CONTROLLERS_COUNT];
 
     struct cart cart;
-
-    struct dd_controller dd;
 };
 
 /* Setup device "static" properties.  */
@@ -138,11 +135,7 @@ void init_device(struct device* dev,
     void* eeprom_storage, const struct storage_backend_interface* ieeprom_storage,
     uint32_t flashram_type,
     void* flashram_storage, const struct storage_backend_interface* iflashram_storage,
-    void* sram_storage, const struct storage_backend_interface* isram_storage,
-    /* dd */
-    void* dd_rtc_clock, const struct clock_backend_interface* dd_rtc_iclock,
-    size_t dd_rom_size,
-    void* dd_disk, const struct storage_backend_interface* dd_idisk);
+    void* sram_storage, const struct storage_backend_interface* isram_storage);
 
 /* Setup device such that it's state is
  * what it should be after power on.

@@ -113,9 +113,6 @@ uint32_t screen_pitch = 0;
 
 float retro_screen_aspect = 4.0 / 3.0;
 
-char* retro_dd_path_img;
-char* retro_dd_path_rom;
-
 uint32_t bilinearMode = 0;
 uint32_t EnableHWLighting = 0;
 uint32_t CorrectTexrectCoords = 0;
@@ -449,62 +446,12 @@ void retro_set_input_state(retro_input_state_t cb)
 bool retro_load_game_special(unsigned game_type,
 		const struct retro_game_info *info, size_t num_info)
 {
-    if(retro_dd_path_img)
-    {
-        free(retro_dd_path_img);
-        retro_dd_path_img = NULL;
-    }
-
-    if(retro_dd_path_rom)
-    {
-        free(retro_dd_path_rom);
-        retro_dd_path_rom = NULL;
-    }
-
-    switch(game_type)
-    {
-        case RETRO_GAME_TYPE_DD:
-            if(num_info == 1)
-            {
-                retro_dd_path_img = strdup(info[0].path);
-            }
-            else if(num_info == 2)
-            {
-                retro_dd_path_img = strdup(info[0].path);
-                retro_dd_path_rom = strdup(info[1].path);
-            } else {
-                return false;
-            }
-
-            load_file(info[1].path, (void**)&info[1].data, &info[1].size);
-            return retro_load_game(&info[1]);
-        default:
-            return false;
-    }
-
 	return false;
 }
 
 void retro_set_environment(retro_environment_t cb)
 {
     environ_cb = cb;
-
-    static const struct retro_subsystem_memory_info memory_info[] = {
-        { "srm", RETRO_MEMORY_DD },
-    };
-
-    static const struct retro_subsystem_rom_info dd_roms[] = {
-        { "Disk", "ndd", true, false, true, memory_info, 1 },
-        { "Cartridge", "n64|v64|z64|bin|u1", true, false, true, NULL, 0 },
-    };
-
-    static const struct retro_subsystem_info subsystems[] = {
-        { "N64 Disk Drive", "ndd", dd_roms, 2, RETRO_GAME_TYPE_DD },
-        {}
-    };
-
-    environ_cb(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO, (void*)subsystems);
-
     setup_variables();
 }
 
@@ -1104,24 +1051,6 @@ bool retro_load_game(const struct retro_game_info *game)
 {
     char* gamePath;
     char* newPath;
-
-    // Workaround for broken subsystem on static platforms
-    if(!retro_dd_path_img)
-    {
-        gamePath = (char*)game->path;
-        newPath = (char*)calloc(1, strlen(gamePath)+5);
-        strcpy(newPath, gamePath);
-        strcat(newPath, ".ndd");
-        FILE* fileTest = fopen(newPath, "r");
-        if(!fileTest)
-        {
-            free(newPath);
-        } else {
-            fclose(fileTest);
-            // Free'd later in Mupen Core
-            retro_dd_path_img = newPath;
-        }
-    }
 
     glsm_ctx_params_t params = {0};
     format_saved_memory();
