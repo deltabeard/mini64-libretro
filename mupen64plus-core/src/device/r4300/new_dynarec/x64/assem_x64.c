@@ -732,8 +732,10 @@ static void output_rex(u_char w,u_char r,u_char x,u_char b)
 }
 static void output_w32(u_int word)
 {
-  *((u_int *)out)=word;
-  out+=4;
+  *(out++) = (word >> 0) & 0xFF;
+  *(out++) = (word >> 8) & 0xFF;
+  *(out++) = (word >> 16) & 0xFF;
+  *(out++) = (word >> 24) & 0xFF;
 }
 static void output_w64(uint64_t dword)
 {
