@@ -108,6 +108,7 @@ void TextureFilterHandler::init()
 		pTexDumpPath = txDumpPath;
 	}
 
+#ifndef NODHQ
 	m_inited = txfilter_init(maxTextureSize, // max texture width supported by hardware
 		maxTextureSize, // max texture height supported by hardware
 		32, // max texture bpp supported by hardware
@@ -118,21 +119,25 @@ void TextureFilterHandler::init()
 		pTexPackPath, // path to texture packs folder
 		wRomName, // name of ROM. must be no longer than 256 characters
 		displayLoadProgress);
-
+#endif
 }
 
 void TextureFilterHandler::shutdown()
 {
+#ifndef NODHQ
 	if (isInited()) {
 		txfilter_shutdown();
 		m_inited = m_options = 0;
 	}
+#endif
 }
 
 void TextureFilterHandler::dumpcache()
 {
+#ifndef NODHQ
 	if (isInited())
 		txfilter_dumpcache();
+#endif
 }
 
 TextureFilterHandler TFH;

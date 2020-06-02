@@ -678,6 +678,7 @@ void _updateCachedTexture(const GHQTexInfo & _info, CachedTexture *_pTexture, u1
 
 bool TextureCache::_loadHiresBackground(CachedTexture *_pTexture, u64 & _ricecrc)
 {
+#ifndef NODHQ
 	if (!TFH.isInited())
 		return false;
 
@@ -723,11 +724,13 @@ bool TextureCache::_loadHiresBackground(CachedTexture *_pTexture, u64 & _ricecrc
 		_updateCachedTexture(ghqTexInfo, _pTexture, tile_width, tile_height);
 		return true;
 	}
+#endif
 	return false;
 }
 
 void TextureCache::_loadBackground(CachedTexture *pTexture)
 {
+#ifndef NODHQ
 	u64 ricecrc = 0;
 	if (_loadHiresBackground(pTexture, ricecrc))
 		return;
@@ -855,10 +858,12 @@ void TextureCache::_loadBackground(CachedTexture *pTexture)
 		gfxContext.setTextureUnpackAlignment(m_curUnpackAlignment);
 	free(pSwapped);
 	free(pDest);
+#endif
 }
 
 bool TextureCache::_loadHiresTexture(u32 _tile, CachedTexture *_pTexture, u64 & _ricecrc)
 {
+#ifndef NODHQ
 	if (config.textureFilter.txHiresEnable == 0 || !TFH.isInited())
 		return false;
 
@@ -948,6 +953,7 @@ bool TextureCache::_loadHiresTexture(u32 _tile, CachedTexture *_pTexture, u64 & 
 		_updateCachedTexture(ghqTexInfo, _pTexture, width, height);
 		return true;
 	}
+#endif
 
 	return false;
 }
@@ -1136,6 +1142,7 @@ void TextureCache::_load(u32 _tile, CachedTexture *_pTexture)
 			return;
 		}
 
+#ifndef NODHQ
 		if (m_toggleDumpTex &&
 				config.textureFilter.txHiresEnable != 0 &&
 				config.textureFilter.txDump != 0) {
@@ -1144,6 +1151,7 @@ void TextureCache::_load(u32 _tile, CachedTexture *_pTexture)
 					(unsigned short)(_pTexture->format << 8 | _pTexture->size),
 					ricecrc);
 		}
+#endif
 
 		bool bLoaded = false;
 		bool needEnhance = (config.textureFilter.txEnhancementMode | config.textureFilter.txFilterMode) != 0 &&
@@ -1164,6 +1172,7 @@ void TextureCache::_load(u32 _tile, CachedTexture *_pTexture)
 			}
 		}
 
+#ifndef NODHQ
 		if (needEnhance) {
 			GHQTexInfo ghqTexInfo;
 			if (txfilter_filter((u8*)pDest, tmptex.width, tmptex.height,
@@ -1190,6 +1199,7 @@ void TextureCache::_load(u32 _tile, CachedTexture *_pTexture)
 				bLoaded = true;
 			}
 		}
+#endif
 		if (!bLoaded) {
 			if (tmptex.width % 2 != 0 &&
 				glInternalFormat != internalcolorFormat::RGBA8 &&
@@ -1437,6 +1447,7 @@ void TextureCache::_clear()
 
 void TextureCache::update(u32 _t)
 {
+#ifndef NODHQ
 	if (config.textureFilter.txHiresEnable != 0 && config.textureFilter.txDump != 0) {
 		/* Force reload hi-res textures. Useful for texture artists */
 		if (isKeyPressed(G64_VK_R, 0x0001)) {
@@ -1456,6 +1467,7 @@ void TextureCache::update(u32 _t)
 			}
 		}
 	}
+#endif
 
 	const gDPTile * pTile = gSP.textureTile[_t];
 	switch (pTile->textureMode) {
