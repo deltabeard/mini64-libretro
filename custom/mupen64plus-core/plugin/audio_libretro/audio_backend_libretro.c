@@ -119,23 +119,19 @@ void set_audio_format_via_libretro(void* user_data,
 static void aiLenChanged(void* user_data, const void* buffer, size_t size)
 {
    size_t max_frames, remain_frames;
-   uint32_t i;
    double ratio;
    struct resampler_data data = {0};
    int16_t *out      = NULL;
    int16_t *raw_data = (int16_t*)buffer;
    size_t frames     = size / 4;
-   uint8_t *p        = (uint8_t*)buffer;
 
-   for (i = 0; i < size; i += 4)
-   {
-      p[i ] ^= p[i + 2];
-      p[i + 2] ^= p[i ];
-      p[i ] ^= p[i + 2];
-      p[i + 1] ^= p[i + 3];
-      p[i + 3] ^= p[i + 1];
-      p[i + 1] ^= p[i + 3];
-   }
+    for(size_t i = 0; i < size/2; i+=2)
+    {
+	int16_t tmp;
+        tmp = raw_data[i+1];
+        raw_data[i+1] = raw_data[i];
+        raw_data[i] = tmp;
+    }
 
    while(1)
    {
