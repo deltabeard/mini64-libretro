@@ -47,7 +47,7 @@ static unsigned MAX_AUDIO_FRAMES = 2048;
 #define VI_INTR_TIME 500000
 
 /* Read header for type definition */
-static int GameFreq = 33600;
+static int GameFreq = 44100;
 static unsigned CountsPerSecond;
 static unsigned BytesPerSecond;
 static unsigned CountsPerByte;
@@ -90,18 +90,6 @@ void init_audio_libretro(unsigned max_audio_frames)
    convert_float_to_s16_init_simd();
 }
 
-static void aiDacrateChanged(void *user_data, unsigned int frequency, unsigned int bits)
-{
-   GameFreq        = frequency;
-   BytesPerSecond  = frequency * 4;
-   CountsPerSecond = VI_INTR_TIME * 60 /* TODO/FIXME - dehardcode */;
-   CountsPerByte   = CountsPerSecond / BytesPerSecond;
-
-#if 0
-   printf("CountsPerByte: %d, GameFreq: %d\n", CountsPerByte, GameFreq);
-#endif
-}
-
 // TODO: Possible optimisation here to set the libretro frequency to the first
 // frequency requested by the game. If that frequency then changes during
 // gameplay, then invoke the resampler.
@@ -118,7 +106,10 @@ void set_audio_format_via_libretro(void* user_data,
    /* notify plugin of the new frequency (can't do the same for bits) */
    ai->regs[AI_DACRATE_REG] = ai->vi->clock / frequency - 1;
 
-   aiDacrateChanged(user_data, frequency, bits);
+   GameFreq        = frequency;
+   BytesPerSecond  = frequency * 4;
+   CountsPerSecond = VI_INTR_TIME * 60 /* TODO/FIXME - dehardcode */;
+   CountsPerByte   = CountsPerSecond / BytesPerSecond;
    //fprintf(stderr, "New Freq: %u\n", frequency);
 
    /* restore original registers values */
@@ -146,40 +137,45 @@ static void aiLenChanged(void* user_data, const void* buffer, size_t size)
       p[i + 1] ^= p[i + 3];
    }
 
-audio_batch:
-   out               = NULL;
-   ratio             = 44100.0 / GameFreq;
-   max_frames        = (GameFreq > 44100) ? MAX_AUDIO_FRAMES : (size_t)(MAX_AUDIO_FRAMES / ratio - 1);
-   remain_frames     = 0;
-
-   if (frames > max_frames)
+   while(1)
    {
-      remain_frames = frames - max_frames;
-      frames = max_frames;
-   }
+       out = NULL;
+       ratio = 44100.0 / GameFreq;
+       max_frames = (GameFreq > 44100) ? MAX_AUDIO_FRAMES : (size_t)(MAX_AUDIO_FRAMES / ratio - 1);
+       remain_frames = 0;
 
-   data.data_in      = audio_in_buffer_float;
-   data.data_out     = audio_out_buffer_float;
-   data.input_frames = frames;
-   data.ratio        = ratio;
+       if (frames > max_frames)
+       {
+	   remain_frames = frames - max_frames;
+	   frames = max_frames;
+       }
 
-   convert_s16_to_float(audio_in_buffer_float, raw_data, frames * 2, 1.0f);
-   resampler->process(resampler_audio_data, &data);
-   convert_float_to_s16(audio_out_buffer_s16, audio_out_buffer_float, data.output_frames * 2);
+       data.data_in      = audio_in_buffer_float;
+       data.data_out     = audio_out_buffer_float;
+       data.input_frames = frames;
+       data.ratio        = ratio;
 
-   out                    = audio_out_buffer_s16;
+       convert_s16_to_float(audio_in_buffer_float, raw_data, frames * 2, 1.0f);
+       resampler->process(resampler_audio_data, &data);
+       convert_float_to_s16(audio_out_buffer_s16, audio_out_buffer_float, data.output_frames * 2);
 
-   while (data.output_frames)
-   {
-      size_t ret          = audio_batch_cb(out, data.output_frames);
-      data.output_frames -= ret;
-      out                += ret * 2;
-   }
-   if (remain_frames)
-   {
-      raw_data = raw_data + frames * 2;
-      frames   = remain_frames;
-      goto audio_batch;
+       out = audio_out_buffer_s16;
+
+       while (data.output_frames)
+       {
+	   size_t ret          = audio_batch_cb(out, data.output_frames);
+	   data.output_frames -= ret;
+	   out                += ret * 2;
+       }
+
+       if (remain_frames)
+       {
+	   raw_data = raw_data + frames * 2;
+	   frames   = remain_frames;
+	   continue;
+       }
+
+       break;
    }
 }
 

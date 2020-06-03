@@ -98,7 +98,6 @@ bool alternate_mapping;
 
 static bool     emu_initialized     = false;
 static unsigned initial_boot        = true;
-static unsigned audio_buffer_size   = 2048;
 
 static bool     first_context_reset = false;
 static bool     initializing        = true;
@@ -1049,6 +1048,7 @@ static bool context_framebuffer_lock(void *data)
 
 bool retro_load_game(const struct retro_game_info *game)
 {
+    const unsigned audio_buffer_size = 2048;
     char* gamePath;
     char* newPath;
 

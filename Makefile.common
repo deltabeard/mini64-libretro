@@ -52,7 +52,6 @@ SOURCES_C = \
 	$(CORE_DIR)/src/device/controllers/paks/mempak.c \
 	$(CORE_DIR)/src/device/controllers/paks/rumblepak.c \
 	$(CORE_DIR)/src/device/controllers/paks/transferpak.c \
-	$(CORE_DIR)/src/device/dd/dd_controller.c \
 	$(CORE_DIR)/src/device/device.c \
 	$(CORE_DIR)/src/device/gb/gb_cart.c \
 	$(CORE_DIR)/src/device/gb/mbc3_rtc.c \
@@ -147,13 +146,10 @@ SOURCES_C += $(LIBRETRO_DIR)/libretro.c \
 	$(LIBRETRO_COMM_DIR)/audio/resampler/audio_resampler.c \
 	$(ROOT_DIR)/custom/mupen64plus-core/plugin/emulate_game_controller_via_libretro.c \
 	$(LIBRETRO_COMM_DIR)/audio/resampler/drivers/sinc_resampler.c \
-	$(LIBRETRO_COMM_DIR)/audio/resampler/drivers/nearest_resampler.c \
-	$(LIBRETRO_COMM_DIR)/audio/resampler/drivers/null_resampler.c \
 	$(AUDIO_LIBRETRO_DIR)/audio_backend_libretro.c \
 	$(LIBRETRO_COMM_DIR)/file/config_file.c \
 	$(LIBRETRO_COMM_DIR)/file/config_file_userdata.c \
 	$(LIBRETRO_COMM_DIR)/file/file_path.c \
-	$(LIBRETRO_COMM_DIR)/hash/rhash.c \
 	$(LIBRETRO_COMM_DIR)/compat/compat_strl.c \
 	$(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
 	$(LIBRETRO_COMM_DIR)/compat/compat_strcasestr.c \
@@ -169,9 +165,8 @@ SOURCES_C += $(LIBRETRO_DIR)/libretro.c \
 	$(ROOT_DIR)/custom/mupen64plus-core/api/vidext_libretro.c \
 	$(LIBRETRO_COMM_DIR)/glsm/glsm.c
 
-	
 SOURCES_CXX   += \
-	$(VIDEODIR_GLIDEN64)/src/Combiner.cpp                                                     \
+    $(VIDEODIR_GLIDEN64)/src/Combiner.cpp                                                         \
     $(VIDEODIR_GLIDEN64)/src/CombinerKey.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/CommonPluginAPI.cpp                                                  \
     $(VIDEODIR_GLIDEN64)/src/Config.cpp                                                           \
@@ -328,7 +323,8 @@ SOURCES_CXX   += \
 	$(PNG_DIR)/pngwio.c \
 	$(PNG_DIR)/pngwrite.c \
 	$(PNG_DIR)/pngwtran.c \
-	$(PNG_DIR)/pngwutil.c
+	$(PNG_DIR)/pngwutil.c \
+	$(LIBRETRO_COMM_DIR)/hash/rhash.c
 endif
 
 SOURCES_C += \
