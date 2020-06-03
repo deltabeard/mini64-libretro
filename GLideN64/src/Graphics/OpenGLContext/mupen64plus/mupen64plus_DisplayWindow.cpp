@@ -11,7 +11,6 @@
 #include <gSP.h>
 #include <Log.h>
 #include <FrameBuffer.h>
-#include <GLideNUI/GLideNUI.h>
 #include <DisplayWindow.h>
 
 #include <libretro_private.h>
@@ -63,7 +62,7 @@ void DisplayWindowMupen64plus::_setAttributes()
 bool DisplayWindowMupen64plus::_start()
 {
 	FunctionWrapper::setThreadedMode(false);
-	
+
 	_setAttributes();
 
 	m_bFullscreen = false;

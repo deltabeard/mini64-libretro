@@ -293,7 +293,9 @@ SOURCES_CXX   += \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxQuantize.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxReSample.cpp \
 	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxTexCache.cpp \
-	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp \
+	$(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxUtil.cpp
+
+SOURCES_C += \
 	$(ZLIB_DIR)/adler32.c \
 	$(ZLIB_DIR)/compress.c \
 	$(ZLIB_DIR)/crc32.c \
