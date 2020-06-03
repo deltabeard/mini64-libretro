@@ -394,10 +394,20 @@ static void emu_step_initialize(void)
 
 static void EmuThreadFunction(void)
 {
+    m64p_error ret;
     log_cb(RETRO_LOG_DEBUG, CORE_NAME ": [EmuThread] M64CMD_EXECUTE\n");
 
     initializing = false;
-    CoreDoCommand(M64CMD_EXECUTE, 0, NULL);
+    ret = CoreDoCommand(M64CMD_EXECUTE, 0, NULL);
+
+    /* Emulation ended. */
+    if(ret != 0)
+    {
+	log_cb(RETRO_LOG_ERROR,
+		CORE_NAME ": fatal error %d occurred during emulation\n");
+    }
+
+    co_switch(retro_thread);
 }
 
 void reinit_gfx_plugin(void)
@@ -511,6 +521,7 @@ void retro_deinit(void)
 {
     CoreDoCommand(M64CMD_STOP, 0, NULL);
     co_switch(game_thread); /* Let the core thread finish */
+    co_delete(game_thread);
     deinit_audio_libretro();
 
     if (perf_cb.perf_log)

@@ -22,7 +22,7 @@ extern "C" void retroChangeWindow()
 	dwnd().changeWindow();
 }
 
-extern unsigned int* rdram_size;
+extern uint32_t* rdram_size;
 int PluginAPI::InitiateGFX(const GFX_INFO & _gfxInfo)
 {
 	_initiateGFX(_gfxInfo);
@@ -59,7 +59,7 @@ void _getWSPath(const char * _path, wchar_t * _strPath)
 }
 
 void getRetroArchDir(wchar_t * _strPath)
-{ 
+{
 	const char* systemDir = NULL;
 	if (!environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY,&systemDir) || !systemDir || !*systemDir)
 		systemDir = "./";

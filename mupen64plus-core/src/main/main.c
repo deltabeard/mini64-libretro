@@ -73,7 +73,6 @@
 #include "util.h"
 
 #include <libretro_private.h>
-#include <libco.h>
 
 #ifdef HAVE_LIBNX
 #include <sys/stat.h>
@@ -1138,13 +1137,6 @@ m64p_error main_run(void)
     // clean up
     g_EmulatorRunning = 0;
     StateChanged(M64CORE_EMU_STATE, M64EMU_STOPPED);
-
-    /**
-     * Actually never returns.
-     * Jump back to frontend for deinit
-     */
-    extern cothread_t retro_thread;
-    co_switch(retro_thread);
 
     return M64ERR_SUCCESS;
 

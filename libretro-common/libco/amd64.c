@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 static thread_local long long co_active_buffer[64];
-static thread_local cothread_t co_active_handle = 0;
+thread_local cothread_t co_active_handle __attribute__((__used__)) = 0;
 #ifndef CO_USE_INLINE_ASM
 static void (*co_swap)(cothread_t, cothread_t) = 0;
 #endif
