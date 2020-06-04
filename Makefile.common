@@ -14,7 +14,6 @@ INCFLAGS += \
 	-I$(ROOT_DIR)/custom/android/include \
 	-I$(ROOT_DIR)/custom/GLideN64 \
 	-I$(VIDEODIR_GLIDEN64)/src \
-	-I$(VIDEODIR_GLIDEN64)/src/osal \
 	-I$(CORE_DIR)/src \
 	-I$(CORE_DIR)/src/api \
 	-I$(AUDIO_LIBRETRO_DIR) \
@@ -95,12 +94,6 @@ ASM_DEFINES_OBJ := $(AWK_DEST_DIR)/asm_defines.o
 SOURCES_C += \
 	$(CORE_DIR)/subprojects/xxhash/xxhash.c
 COREFLAGS += -I$(CORE_DIR)/subprojects/xxhash
-
-ifneq (,$(findstring win,$(platform)))
-	SOURCES_C += $(VIDEODIR_GLIDEN64)/src/osal/osal_files_win32.c
-else
-	SOURCES_C += $(VIDEODIR_GLIDEN64)/src/osal/osal_files_unix.c
-endif
 
 ### DYNAREC ###
 ifeq ($(WITH_DYNAREC), arm)
@@ -185,7 +178,6 @@ SOURCES_CXX   += \
     $(VIDEODIR_GLIDEN64)/src/gSP.cpp                                                              \
     $(VIDEODIR_GLIDEN64)/src/Keys.cpp                                                             \
     $(VIDEODIR_GLIDEN64)/src/N64.cpp                                                              \
-    $(VIDEODIR_GLIDEN64)/src/TextDrawer.cpp                                                       \
     $(VIDEODIR_GLIDEN64)/src/PaletteTexture.cpp                                                   \
     $(VIDEODIR_GLIDEN64)/src/Performance.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/PostProcessor.cpp                                                    \

@@ -47,7 +47,6 @@
 #include "main/util.h"
 #include "main/savestates.h"
 #include "api/m64p_config.h"
-#include "osal_files.h"
 #include "main/rom.h"
 #include "plugin/plugin.h"
 #include "device/rcp/pi/pi_controller.h"

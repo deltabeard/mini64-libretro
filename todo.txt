@@ -1,6 +1,6 @@
 Simplify config settings
 Remove minizip.
-Change ini to compressed database
+[DONE] Change ini to compressed database
 	Only use CRC64 to look up database.
 	Design struct to hold data
 	Do not store Good Names. Users don't even see them.
@@ -8,3 +8,8 @@ Change ini to compressed database
 	speed.
 	Table of entries in struct array, array of CRC hashes in order of table
 	entries.
+
+Replace ZLIB with tinf
+Replace libpng with something not gigantic
+Add texture pack as a subsystem option
+Display message when texture pack loaded
