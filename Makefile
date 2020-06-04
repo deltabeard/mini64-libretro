@@ -1,14 +1,17 @@
-DEBUG = 0
+DEBUG := 0
 USE_GLES ?= 0
 USE_GLES3 ?= 0
 NODHQ ?= 0
 
-HAVE_LTCG ?= 0
 DYNAFLAGS :=
 INCFLAGS  :=
-COREFLAGS :=
+COREFLAGS := -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ \
+	-DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT \
+	-DMUPENPLUSAPI
 CPUFLAGS  :=
 GLFLAGS   :=
+USE_LTO   ?= 1
+PIC       ?= 1
 AWK       ?= awk
 STRINGS   ?= strings
 TR        ?= tr
@@ -35,11 +38,12 @@ else ifeq ($(USE_GLES),1)
 	GLES = 1
 else ifeq ($(USE_GL32),1)
 	GL_LIB := -lopengl32
-	platform := win
+	platform ?= win
 else ifeq ($(USE_GLRPI),1)
 	GL_LIB := -L/opt/vc/lib -lbrcmGLESv2
 	EGL_LIB := -lbrcmEGL
 	INCFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vcos -I/opt/vc/include/interface/vcos/pthreads
+	platform ?= rpi
 	#TODO: Change LDFLAGS to LDLIBS
 	LDFLAGS += -ldl
 else
@@ -48,6 +52,10 @@ endif
 
 ifeq ($(NODHQ),1)
 	COREFLAGS += -DNODHQ
+endif
+
+# If rpi given as platform, attempt to automatically select CPUFLAGS
+ifeq ($(platform), rpi)
 endif
 
 # Assume platform is unix if not set to win previously, or forced by user.
@@ -63,11 +71,9 @@ ARCH ?= $(shell uname -m)
 # Target Dynarec
 WITH_DYNAREC = $(ARCH)
 
-# FIXME: Remove PIC
-PIC = 1
 ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
 	WITH_DYNAREC = x86
-	PIC = 0
+	PIC := 0
 else ifeq ($(ARCH), $(filter $(WITH_DYNAREC), x86_64 x64))
 	WITH_DYNAREC = x86_64
 else ifeq ($(ARCH), $(filter $(ARCH), arm))
@@ -397,8 +403,6 @@ ifeq ($(HAVE_NEON), 1)
    COREFLAGS += -DHAVE_NEON -D__ARM_NEON__ -D__NEON_OPT -ftree-vectorize -mvectorize-with-neon-quad -ftree-vectorizer-verbose=2 -funsafe-math-optimizations -fno-finite-math-only
 endif
 
-COREFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT -DMUPENPLUSAPI
-
 ifeq ($(DEBUG), 1)
    CPUOPTS += -Og -g3
    CPUOPTS += -DOPENGL_DEBUG
@@ -410,7 +414,7 @@ endif
    CXXFLAGS += -fvisibility-inlines-hidden
 endif
 
-ifeq ($(HAVE_LTCG),1)
+ifeq ($(USE_LTO),1)
    CPUFLAGS += -flto
 endif
 

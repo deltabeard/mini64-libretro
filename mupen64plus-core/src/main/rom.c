@@ -39,7 +39,6 @@
 #include "device/device.h"
 #include "main.h"
 #include "osal/preproc.h"
-#include "osd/osd.h"
 #include "rom.h"
 #include "rom_settings.h"
 #include "util.h"

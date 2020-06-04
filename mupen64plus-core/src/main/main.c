@@ -178,19 +178,6 @@ const char *get_savesrampath(void)
     return "";
 }
 
-void main_message(m64p_msg_level level, unsigned int corner, const char *format, ...)
-{
-    va_list ap;
-    char buffer[2049];
-    va_start(ap, format);
-    vsnprintf(buffer, 2047, format, ap);
-    buffer[2048]='\0';
-    va_end(ap);
-
-    /* send message to front-end */
-    DebugMessage(level, "%s", buffer);
-}
-
 extern retro_input_poll_t poll_cb;
 static void main_check_inputs(void)
 {

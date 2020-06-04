@@ -8,7 +8,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       * 
+ *   This program is distributed in the hope that it will be useful,       *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
@@ -305,7 +305,7 @@ static config_section * section_deepcopy(config_section *orig_section)
             case M64TYPE_BOOL:
                 new_var->val.integer = orig_var->val.integer;
                 break;
-                
+
             case M64TYPE_FLOAT:
                 new_var->val.number = orig_var->val.number;
                 break;
@@ -364,60 +364,6 @@ static void copy_configlist_active_to_saved(void)
 
 static m64p_error write_configlist_file(void)
 {
-    config_section *curr_section;
-    const char *configpath;
-    char *filepath;
-    FILE *fPtr;
-
-    /* get the full pathname to the config file and try to open it */
-    configpath = ConfigGetUserConfigPath();
-    if (configpath == NULL)
-        return M64ERR_FILES;
-
-    filepath = combinepath(configpath, MUPEN64PLUS_CFG_NAME);
-    if (filepath == NULL)
-        return M64ERR_NO_MEMORY;
-
-    fPtr = fopen(filepath, "wb");
-    if (fPtr == NULL)
-    {
-        DebugMessage(M64MSG_ERROR, "Couldn't open configuration file '%s' for writing.", filepath);
-        free(filepath);
-        return M64ERR_FILES;
-    }
-    free(filepath);
-
-    /* write out header */
-    fprintf(fPtr, "# Mupen64Plus Configuration File\n");
-    fprintf(fPtr, "# This file is automatically read and written by the Mupen64Plus Core library\n");
-
-    /* write out all of the config parameters from the Saved list */
-    curr_section = l_ConfigListSaved;
-    while (curr_section != NULL)
-    {
-        config_var *curr_var = curr_section->first_var;
-        fprintf(fPtr, "\n[%s]\n\n", curr_section->name);
-        while (curr_var != NULL)
-        {
-            if (curr_var->comment != NULL && strlen(curr_var->comment) > 0)
-                fprintf(fPtr, "# %s\n", curr_var->comment);
-            if (curr_var->type == M64TYPE_INT)
-                fprintf(fPtr, "%s = %i\n", curr_var->name, curr_var->val.integer);
-            else if (curr_var->type == M64TYPE_FLOAT)
-                fprintf(fPtr, "%s = %f\n", curr_var->name, curr_var->val.number);
-            else if (curr_var->type == M64TYPE_BOOL && curr_var->val.integer)
-                fprintf(fPtr, "%s = True\n", curr_var->name);
-            else if (curr_var->type == M64TYPE_BOOL && !curr_var->val.integer)
-                fprintf(fPtr, "%s = False\n", curr_var->name);
-            else if (curr_var->type == M64TYPE_STRING && curr_var->val.string != NULL)
-                fprintf(fPtr, "%s = \"%s\"\n", curr_var->name, curr_var->val.string);
-            curr_var = curr_var->next;
-        }
-        fprintf(fPtr, "\n");
-        curr_section = curr_section->next;
-    }
-
-    fclose(fPtr);
     return M64ERR_SUCCESS;
 }
 
@@ -1278,38 +1224,4 @@ EXPORT const char * CALL ConfigGetParamString(m64p_handle ConfigSectionHandle, c
             DebugMessage(M64MSG_ERROR, "ConfigGetParamString(): invalid internal parameter type for '%s'", ParamName);
             return "";
     }
-}
-
-/* ------------------------------------------------------ */
-/* OS Abstraction functions, exported outside of the Core */
-/* ------------------------------------------------------ */
-extern retro_environment_t environ_cb;
-
-EXPORT const char * CALL ConfigGetSharedDataFilepath(const char *filename)
-{
-  char* sys_systemDir = NULL;
-  if (!environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY,&sys_systemDir) || !sys_systemDir || !*sys_systemDir)
-    sys_systemDir = "./";
-  static char systemDir[2048];
-  strncpy(systemDir, sys_systemDir, 2048);
-  if (systemDir[(strlen(systemDir)-1)] != '/' && systemDir[(strlen(systemDir)-1)] != '\\')
-     strcat(systemDir, "/");
-  strcat(systemDir, "Mupen64plus/");
-  strcat(systemDir, filename);
-  return systemDir;
-}
-
-EXPORT const char * CALL ConfigGetUserConfigPath(void)
-{
-  return "";
-}
-
-EXPORT const char * CALL ConfigGetUserDataPath(void)
-{
-  return "";
-}
-
-EXPORT const char * CALL ConfigGetUserCachePath(void)
-{
-  return "";
 }

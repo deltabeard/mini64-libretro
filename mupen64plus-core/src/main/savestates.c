@@ -44,7 +44,6 @@
 #include "main/list.h"
 #include "main/main.h"
 #include "osal/preproc.h"
-#include "osd/osd.h"
 #include "plugin/plugin.h"
 #include "rom.h"
 #include "savestates.h"
@@ -65,10 +64,6 @@ static char *fname = NULL;
 
 static unsigned int slot = 0;
 static int autoinc_save_slot = 0;
-
-#ifdef USE_SDL
-static SDL_mutex *savestates_lock;
-#endif
 
 struct savestate_work {
     char *filepath;

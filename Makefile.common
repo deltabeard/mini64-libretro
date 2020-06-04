@@ -164,22 +164,18 @@ SOURCES_CXX   += \
     $(VIDEODIR_GLIDEN64)/src/CommonPluginAPI.cpp                                                  \
     $(VIDEODIR_GLIDEN64)/src/Config.cpp                                                           \
     $(VIDEODIR_GLIDEN64)/src/convert.cpp                                                          \
-    $(VIDEODIR_GLIDEN64)/src/DebugDump.cpp                                                        \
     $(VIDEODIR_GLIDEN64)/src/Debugger.cpp                                                         \
     $(VIDEODIR_GLIDEN64)/src/DepthBuffer.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/DisplayWindow.cpp                                                    \
     $(VIDEODIR_GLIDEN64)/src/Graphics/OpenGLContext/mupen64plus/mupen64plus_DisplayWindow.cpp     \
-    $(VIDEODIR_GLIDEN64)/src/DisplayLoadProgress.cpp                                              \
     $(VIDEODIR_GLIDEN64)/src/FrameBuffer.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/FrameBufferInfo.cpp                                                  \
     $(VIDEODIR_GLIDEN64)/src/GBI.cpp                                                              \
     $(VIDEODIR_GLIDEN64)/src/gDP.cpp                                                              \
     $(VIDEODIR_GLIDEN64)/src/GLideN64.cpp                                                         \
     $(VIDEODIR_GLIDEN64)/src/gSP.cpp                                                              \
-    $(VIDEODIR_GLIDEN64)/src/Keys.cpp                                                             \
     $(VIDEODIR_GLIDEN64)/src/N64.cpp                                                              \
     $(VIDEODIR_GLIDEN64)/src/PaletteTexture.cpp                                                   \
-    $(VIDEODIR_GLIDEN64)/src/Performance.cpp                                                      \
     $(VIDEODIR_GLIDEN64)/src/PostProcessor.cpp                                                    \
     $(VIDEODIR_GLIDEN64)/src/RDP.cpp                                                              \
     $(VIDEODIR_GLIDEN64)/src/RSP.cpp                                                              \
@@ -266,7 +262,7 @@ ifneq (,$(findstring android,$(platform)))
 	SOURCES_CXX += $(VIDEODIR_GLIDEN64)/src/GLideNHQ/txWidestringWrapper.cpp \
 		$(VIDEODIR_GLIDEN64)/src/Log_android.cpp
 else
-	SOURCES_CXX += $(VIDEODIR_GLIDEN64)/src/Log.cpp
+	SOURCES_C += $(VIDEODIR_GLIDEN64)/src/Log.c
 endif
 
 ifneq ($(NODHQ),1)

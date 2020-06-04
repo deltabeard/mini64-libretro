@@ -183,7 +183,7 @@ void log_fallback(enum retro_log_level level, const char *fmt, ...)
 static void n64DebugCallback(void* aContext, int aLevel, const char* aMessage)
 {
     char buffer[256];
-    snprintf(buffer, 256, CORE_NAME ": %s\n", aMessage);
+    snprintf(buffer, 256, "%s\n", aMessage);
     (void)aContext;
 
     if(aLevel < 0)
@@ -205,93 +205,93 @@ static void setup_variables(void)
             "CPU Core; cached_interpreter|pure_interpreter" },
 #endif
         { CORE_NAME "-43screensize",
-            "(GLN64) 4:3 Resolution; 640x480|320x240|960x720|1280x960|1440x1080|1600x1200|1920x1440|2240x1680|2560x1920|2880x2160|3200x2400|3520x2640|3840x2880" },
+            "4:3 Resolution; 640x480|320x240|960x720|1280x960|1440x1080|1600x1200|1920x1440|2240x1680|2560x1920|2880x2160|3200x2400|3520x2640|3840x2880" },
         { CORE_NAME "-169screensize",
-            "(GLN64) 16:9 Resolution; 960x540|640x360|1280x720|1920x1080|2560x1440|3840x2160|4096x2160|7680x4320" },
+            "16:9 Resolution; 960x540|640x360|1280x720|1920x1080|2560x1440|3840x2160|4096x2160|7680x4320" },
         { CORE_NAME "-aspect",
-            "(GLN64) Aspect Ratio; 4:3|16:9|16:9 adjusted" },
+            "Aspect Ratio; 4:3|16:9|16:9 adjusted" },
         { CORE_NAME "-BilinearMode",
-            "(GLN64) Bilinear filtering mode; standard|3point" },
+            "Bilinear filtering mode; standard|3point" },
 #ifndef HAVE_OPENGLES2
         { CORE_NAME "-MultiSampling",
-            "(GLN64) MSAA level; 0|2|4|8|16" },
+            "MSAA level; 0|2|4|8|16" },
 #endif
         { CORE_NAME "-FXAA",
-            "(GLN64) FXAA; 0|1" },
+            "FXAA; 0|1" },
 
         { CORE_NAME "-NoiseEmulation",
-            "(GLN64) Noise Emulation; True|False" },
+            "Noise Emulation; True|False" },
 
         { CORE_NAME "-EnableFBEmulation",
 #ifdef VC
-            "(GLN64) Framebuffer Emulation; False|True" },
+            "Framebuffer Emulation; False|True" },
 #else
-            "(GLN64) Framebuffer Emulation; True|False" },
+            "Framebuffer Emulation; True|False" },
 #endif
 
         { CORE_NAME "-EnableLODEmulation",
-            "(GLN64) LOD Emulation; True|False" },
+            "LOD Emulation; True|False" },
         { CORE_NAME "-EnableCopyColorToRDRAM",
 #ifndef HAVE_OPENGLES
-            "(GLN64) Color buffer to RDRAM; Async|Sync|Off" },
+            "Color buffer to RDRAM; Async|Sync|Off" },
 #else
-            "(GLN64) Color buffer to RDRAM; Off|Async|Sync" },
+            "Color buffer to RDRAM; Off|Async|Sync" },
 #endif
         { CORE_NAME "-EnableCopyDepthToRDRAM",
-            "(GLN64) Depth buffer to RDRAM; Software|FromMem|Off" },
+            "Depth buffer to RDRAM; Software|FromMem|Off" },
         { CORE_NAME "-BackgroundMode",
-            "(GLN64) Background Mode; OnePiece|Stripped" },
+            "Background Mode; OnePiece|Stripped" },
         { CORE_NAME "-EnableHWLighting",
-            "(GLN64) Hardware per-pixel lighting; False|True" },
+            "Hardware per-pixel lighting; False|True" },
         { CORE_NAME "-CorrectTexrectCoords",
-            "(GLN64) Continuous texrect coords; Off|Auto|Force" },
+            "Continuous texrect coords; Off|Auto|Force" },
         { CORE_NAME "-EnableNativeResTexrects",
-            "(GLN64) Native res. 2D texrects; Disabled|Optimized|Unoptimized" },
+            "Native res. 2D texrects; Disabled|Optimized|Unoptimized" },
 #if defined(HAVE_OPENGLES)
         { CORE_NAME "-EnableLegacyBlending",
-            "(GLN64) Less accurate blending mode; True|False" },
+            "Less accurate blending mode; True|False" },
         { CORE_NAME "-EnableFragmentDepthWrite",
-            "(GLN64) GPU shader depth write; False|True" },
+            "GPU shader depth write; False|True" },
 #else
         { CORE_NAME "-EnableLegacyBlending",
-            "(GLN64) Less accurate blending mode; False|True" },
+            "Less accurate blending mode; False|True" },
         { CORE_NAME "-EnableFragmentDepthWrite",
-            "(GLN64) GPU shader depth write; True|False" },
+            "GPU shader depth write; True|False" },
 #endif
 #if !defined(VC) && !defined(HAVE_OPENGLES)
         // Not supported on all GPU's
         { CORE_NAME "-EnableN64DepthCompare",
-            "(GLN64) N64 Depth Compare; False|True" },
+            "N64 Depth Compare; False|True" },
         { CORE_NAME "-EnableShadersStorage",
-            "(GLN64) Cache GPU Shaders; True|False" },
+            "Cache GPU Shaders; True|False" },
 #endif // !defined(VC) && !defined(HAVE_OPENGLES)
         { CORE_NAME "-EnableTextureCache",
-            "(GLN64) Cache Textures; True|False" },
+            "Cache Textures; True|False" },
 
         { CORE_NAME "-MaxTxCacheSize",
 #if defined(VC)
-            "(GLN64) Max texture cache size; 1500|8000|4000" },
+            "Max texture cache size; 1500|8000|4000" },
 #elif defined(HAVE_LIBNX)
-            "(GLN64) Max texture cache size; 4000|1500|8000" },
+            "Max texture cache size; 4000|1500|8000" },
 #else
-            "(GLN64) Max texture cache size; 8000|4000|1500" },
+            "Max texture cache size; 8000|4000|1500" },
 #endif
         { CORE_NAME "-txFilterMode",
-            "(GLN64) Texture filter; None|Smooth filtering 1|Smooth filtering 2|Smooth filtering 3|Smooth filtering 4|Sharp filtering 1|Sharp filtering 2" },
+            "Texture filter; None|Smooth filtering 1|Smooth filtering 2|Smooth filtering 3|Smooth filtering 4|Sharp filtering 1|Sharp filtering 2" },
         { CORE_NAME "-txEnhancementMode",
-            "(GLN64) Texture Enhancement; None|As Is|X2|X2SAI|HQ2X|HQ2XS|LQ2X|LQ2XS|HQ4X|2xBRZ|3xBRZ|4xBRZ|5xBRZ|6xBRZ" },
+            "Texture Enhancement; None|As Is|X2|X2SAI|HQ2X|HQ2XS|LQ2X|LQ2XS|HQ4X|2xBRZ|3xBRZ|4xBRZ|5xBRZ|6xBRZ" },
         { CORE_NAME "-txFilterIgnoreBG",
-            "(GLN64) Filter background textures; True|False" },
+            "Filter background textures; True|False" },
         { CORE_NAME "-txHiresEnable",
-            "(GLN64) Use High-Res textures; False|True" },
+            "Use High-Res textures; False|True" },
         { CORE_NAME "-txCacheCompression",
-            "(GLN64) Use High-Res Texture Cache Compression; True|False" },
+            "Use High-Res Texture Cache Compression; True|False" },
         { CORE_NAME "-txHiresFullAlphaChannel",
-            "(GLN64) Use High-Res Full Alpha Channel; False|True" },
+            "Use High-Res Full Alpha Channel; False|True" },
         { CORE_NAME "-EnableEnhancedTextureStorage",
-            "(GLN64) Use enhanced Texture Storage; False|True" },
+            "Use enhanced Texture Storage; False|True" },
         { CORE_NAME "-EnableEnhancedHighResStorage",
-            "(GLN64) Use enhanced Hi-Res Storage; False|True" },
+            "Use enhanced Hi-Res Storage; False|True" },
         { CORE_NAME "-FrameDuping",
 #ifdef HAVE_LIBNX
             "Frame Duplication; True|False" },
@@ -1079,7 +1079,8 @@ bool retro_load_game(const struct retro_game_info *game)
     if (current_rdp_type == RDP_PLUGIN_GLIDEN64 && !glsm_ctl(GLSM_CTL_STATE_CONTEXT_INIT, &params))
     {
         if (log_cb)
-            log_cb(RETRO_LOG_ERROR, CORE_NAME ": libretro frontend doesn't have OpenGL support\n");
+            log_cb(RETRO_LOG_ERROR, "libretro frontend doesn't have OpenGL support\n");
+
         return false;
     }
 

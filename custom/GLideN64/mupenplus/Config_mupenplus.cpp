@@ -13,7 +13,6 @@
 #include "../Log.h"
 extern "C" {
 #include "main/util.h"
-#include "GLideN64.custom.ini.h"
 }
 
 Config config;
@@ -32,29 +31,18 @@ std::string replaceChars(std::string myString)
 }
 
 /* FIXME: Remove ini. */
-void LoadCustomSettings(bool internal)
+void LoadCustomSettings(void)
 {
+#include "GLideN64.custom.ini.h"
 	std::string myString = replaceChars(RSP.romname);
 	bool found = false;
 	char buffer[256];
 	char* line;
-	FILE* fPtr;
 	std::transform(myString.begin(), myString.end(), myString.begin(), ::toupper);
-	if (internal) {
-		line = strtok(customini, "\n");
-	} else {
-		const char *pathname = ConfigGetSharedDataFilepath("GLideN64.custom.ini");
-		if (pathname == NULL || (fPtr = fopen(pathname, "rb")) == NULL)
-			return;
-	}
-	while (true)
+	line = strtok(customini, "\n");
+
+	while (line != NULL)
 	{
-		if (!internal) {
-			if (fgets(buffer, 255, fPtr) == NULL)
-				break;
-			else
-				line = buffer;
-		}
 		ini_line l = ini_parse_line(&line);
 		switch (l.type)
 		{
@@ -101,11 +89,7 @@ void LoadCustomSettings(bool internal)
 				}
 			}
 		}
-		if (internal) {
-			line = strtok(NULL, "\n");
-			if (line == NULL)
-				break;
-		}
+		line = strtok(NULL, "\n");
 	}
 }
 
@@ -166,6 +150,5 @@ extern "C" void Config_LoadConfig()
 	config.frameBufferEmulation.nativeResFactor = EnableNativeResFactor;
 
 	config.generalEmulation.hacks = hacks;
-	LoadCustomSettings(true);
-	LoadCustomSettings(false);
+	LoadCustomSettings();
 }
