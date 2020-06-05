@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/GLideN64
+	branch = develop
+	commit = dc2e13d8cc61720cb2cbd1d30da29d2cb9903536
+	parent = 0e6fdcf98b0f8ca50e942f3972c5814b86145be7
+	cmdver = 0.1.0
