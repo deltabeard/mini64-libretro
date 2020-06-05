@@ -136,7 +136,7 @@ void run_r4300(struct r4300_core* r4300)
         run_pure_interpreter(r4300);
     }
 #if defined(DYNAREC)
-    else if (r4300->emumode >= 2)
+    else if (r4300->emumode >= EMUMODE_DYNAREC)
     {
         DebugMessage(M64MSG_INFO, "Starting R4300 emulator: Dynamic Recompiler");
         r4300->emumode = EMUMODE_DYNAREC;
