@@ -65,8 +65,7 @@ public:
 			   int options,
 			   const wchar_t *cachePath,
 			   const wchar_t *texPackPath,
-			   const wchar_t *ident,
-			   dispInfoFuncExt callback);
+			   const wchar_t *ident);
   bool load(boolean replace);
   void dump();
 };

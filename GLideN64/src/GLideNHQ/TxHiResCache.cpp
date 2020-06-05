@@ -50,22 +50,21 @@ TxHiResCache::~TxHiResCache()
 }
 
 TxHiResCache::TxHiResCache(int maxwidth,
-						   int maxheight,
-						   int maxbpp,
-						   int options,
-						   const wchar_t *cachePath,
-						   const wchar_t *texPackPath,
-						   const wchar_t *ident,
-						   dispInfoFuncExt callback)
-							 : TxCache((options & ~(GZ_TEXCACHE | FILE_TEXCACHE)), 0, cachePath, ident, callback)
-							 , _maxwidth(maxwidth)
-							 , _maxheight(maxheight)
-							 , _maxbpp(maxbpp)
-							 , _abortLoad(false)
-							 , _cacheDumped(false)
-							 , _txImage(new TxImage())
-							 , _txQuantize(new TxQuantize())
-							 , _txReSample(new TxReSample())
+		int maxheight,
+		int maxbpp,
+		int options,
+		const wchar_t *cachePath,
+		const wchar_t *texPackPath,
+		const wchar_t *ident)
+	: TxCache((options & ~(GZ_TEXCACHE | FILE_TEXCACHE)), 0, cachePath, ident)
+	, _maxwidth(maxwidth)
+	, _maxheight(maxheight)
+	, _maxbpp(maxbpp)
+	, _abortLoad(false)
+	, _cacheDumped(false)
+	, _txImage(new TxImage())
+	, _txQuantize(new TxQuantize())
+	  , _txReSample(new TxReSample())
 {
 
 	if (texPackPath)
@@ -128,5 +127,5 @@ bool TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 
 TxHiResCache::LoadResult TxHiResCache::loadHiResTextures(const wchar_t * dir_path, boolean replace)
 {
-	return false;
+	return resNotFound;
 }

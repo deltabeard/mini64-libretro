@@ -64,8 +64,7 @@ TxFilter::TxFilter(int maxwidth,
 				   const wchar_t * texCachePath,
 				   const wchar_t * texDumpPath,
 				   const wchar_t * texPackPath,
-				   const wchar_t * ident,
-				   dispInfoFuncExt callback)
+				   const wchar_t * ident)
 	: _tex1(nullptr)
 	, _tex2(nullptr)
 	, _txQuantize(nullptr)
@@ -144,11 +143,11 @@ TxFilter::TxFilter(int maxwidth,
 #endif
 
 	/* initialize texture cache in bytes. 128Mb will do nicely in most cases */
-	_txTexCache = new TxTexCache(_options, _cacheSize, texCachePath, _ident.c_str(), callback);
+	_txTexCache = new TxTexCache(_options, _cacheSize, texCachePath, _ident.c_str());
 
 	/* hires texture */
 #if HIRES_TEXTURE
-	_txHiResCache = new TxHiResCache(_maxwidth, _maxheight, _maxbpp, _options, texCachePath, texPackPath, _ident.c_str(), callback);
+	_txHiResCache = new TxHiResCache(_maxwidth, _maxheight, _maxbpp, _options, texCachePath, texPackPath, _ident.c_str());
 
 	if (_txHiResCache->empty())
 		_options &= ~HIRESTEXTURES_MASK;

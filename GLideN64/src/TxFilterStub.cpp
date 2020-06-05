@@ -3,13 +3,13 @@
 TAPI boolean TAPIENTRY
 txfilter_init(int maxwidth, int maxheight, int maxbpp, int options, int cachesize,
 	const wchar_t *txCachePath, const wchar_t *txDumpPath, const wchar_t * texPackPath,
-	const wchar_t* ident, dispInfoFuncExt callback)
+	const wchar_t* ident)
 {
 	return 0;
 }
 
 TAPI void TAPIENTRY
-txfilter_shutdown(void) 
+txfilter_shutdown(void)
 {}
 
 TAPI boolean TAPIENTRY

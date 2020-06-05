@@ -61,8 +61,7 @@ public:
 		   const wchar_t * texCachePath,
 		   const wchar_t * texDumpPath,
 		   const wchar_t * texPackPath,
-		   const wchar_t * ident,
-		   dispInfoFuncExt callback);
+		   const wchar_t * ident);
   boolean filter(uint8 *src,
 				  int srcwidth,
 				  int srcheight,

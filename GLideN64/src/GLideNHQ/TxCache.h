@@ -62,7 +62,6 @@ private:
 protected:
 	tx_wstring _ident;
 	tx_wstring _cachePath;
-	dispInfoFuncExt _callback;
 
 	bool save();
 	bool load(bool force);
@@ -80,7 +79,7 @@ protected:
 
 public:
 	virtual ~TxCache();
-	TxCache(uint32 options, uint64 cacheLimit, const wchar_t *cachePath, const wchar_t *ident, dispInfoFuncExt callback);
+	TxCache(uint32 options, uint64 cacheLimit, const wchar_t *cachePath, const wchar_t *ident);
 	bool add(Checksum checksum, GHQTexInfo *info, int dataSize = 0);
 	bool get(Checksum checksum, GHQTexInfo *info);
 	bool empty() const;

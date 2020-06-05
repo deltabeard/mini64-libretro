@@ -62,7 +62,7 @@ public:
 class TxMemoryCache : public TxCacheImpl
 {
 public:
-	TxMemoryCache(uint32 _options, uint64 cacheLimit, dispInfoFuncExt callback);
+	TxMemoryCache(uint32 _options, uint64 cacheLimit);
 	~TxMemoryCache();
 
 	bool add(Checksum checksum, GHQTexInfo *info, int dataSize = 0) override;
@@ -89,7 +89,6 @@ private:
 	};
 
 	uint32 _options;
-	dispInfoFuncExt _callback;
 	uint64 _cacheLimit;
 	uint64 _totalSize;
 
@@ -102,11 +101,9 @@ private:
 };
 
 TxMemoryCache::TxMemoryCache(uint32 options,
-	uint64 cacheLimit,
-	dispInfoFuncExt callback)
+	uint64 cacheLimit)
 	: _options(options)
 	, _cacheLimit(cacheLimit)
-	, _callback(callback)
 	, _totalSize(0U)
 {
 	/* zlib memory buffers to (de)compress hires textures */
@@ -333,11 +330,6 @@ bool TxMemoryCache::load(const wchar_t *path, const wchar_t *filename, int confi
 				} else {
 					gzseek(gzfp, dataSize, SEEK_CUR);
 				}
-
-				/* skip in between to prevent the loop from being tied down to vsync */
-				if (_callback && (!(_cache.size() % 100) || gzeof(gzfp)))
-					(*_callback)(wst("[%d] total mem:%.02fmb - %ls\n"), _cache.size(), (float)_totalSize / 1000000, filename);
-
 			} while (!gzeof(gzfp));
 			gzclose(gzfp);
 		}
@@ -402,7 +394,7 @@ void TxMemoryCache::clear()
 class TxFileStorage : public TxCacheImpl
 {
 public:
-	TxFileStorage(uint32 _options, const wchar_t *cachePath, dispInfoFuncExt callback);
+	TxFileStorage(uint32 _options, const wchar_t *cachePath);
 	~TxFileStorage() = default;
 
 	bool add(Checksum checksum, GHQTexInfo *info, int dataSize = 0) override;
@@ -429,8 +421,6 @@ private:
 	uint32 _options;
 	tx_wstring _cachePath;
 	tx_wstring _filename;
-	std::string _fullPath;
-	dispInfoFuncExt _callback;
 	uint64 _totalSize = 0;
 
 	using StorageMap = std::unordered_map<uint64, int64>;
@@ -452,10 +442,8 @@ const int TxFileStorage::_fakeConfig = -1;
 const int64 TxFileStorage::_initialPos = sizeof(int64) + sizeof(int);
 
 TxFileStorage::TxFileStorage(uint32 options,
-	const wchar_t *cachePath,
-	dispInfoFuncExt callback)
+	const wchar_t *cachePath)
 	: _options(options)
-	, _callback(callback)
 {
 	/* save path name */
 	if (cachePath)
@@ -477,17 +465,10 @@ TxFileStorage::TxFileStorage(uint32 options,
 #define FWRITE(a) _outfile.write((char*)(&a), sizeof(a))
 #define FREAD(a) _infile.read((char*)(&a), sizeof(a))
 
-void TxFileStorage::buildFullPath()
-{
-	char cbuf[MAX_PATH * 2];
-	tx_wstring filename = _cachePath + OSAL_DIR_SEPARATOR_STR + _filename;
-	wcstombs(cbuf, filename.c_str(), MAX_PATH * 2);
-	_fullPath = cbuf;
-}
-
 bool TxFileStorage::open(bool forRead)
 {
 	/* FIXME: Replace. */
+	return false;
 #if 0
 	if (_infile.is_open())
 		_infile.close();
@@ -598,6 +579,8 @@ bool TxFileStorage::save(const wchar_t *path, const wchar_t *filename, int confi
 
 bool TxFileStorage::load(const wchar_t *path, const wchar_t *filename, int config, bool force)
 {
+	return false;
+#if 0
 	assert(_cachePath == path);
 	if (_filename.empty()) {
 		_filename = filename;
@@ -629,8 +612,6 @@ bool TxFileStorage::load(const wchar_t *path, const wchar_t *filename, int confi
 	if (storageSize <= 0)
 		return false;
 
-	if (_callback)
-		(*_callback)(wst("Loading texture storage...\n"));
 	uint64 key;
 	int64 value;
 	for (int i = 0; i < storageSize; ++i) {
@@ -638,11 +619,10 @@ bool TxFileStorage::load(const wchar_t *path, const wchar_t *filename, int confi
 		FREAD(value);
 		_storage.insert(StorageMap::value_type(key, value));
 	}
-	if (_callback)
-		(*_callback)(wst("Done\n"));
 
 	_dirty = false;
 	return !_storage.empty();
+#endif
 }
 
 bool TxFileStorage::isCached(Checksum checksum)
@@ -659,9 +639,7 @@ TxCache::~TxCache()
 TxCache::TxCache(uint32 options,
 	uint64 cachesize,
 	const wchar_t *cachePath,
-	const wchar_t *ident,
-	dispInfoFuncExt callback)
-	: _callback(callback)
+	const wchar_t *ident)
 {
 	/* save path name */
 	if (cachePath)
@@ -672,9 +650,9 @@ TxCache::TxCache(uint32 options,
 		_ident.assign(ident);
 
 	if ((options & FILE_CACHE_MASK) == 0)
-		_pImpl.reset(new TxMemoryCache(options, cachesize, _callback));
+		_pImpl.reset(new TxMemoryCache(options, cachesize));
 	else
-		_pImpl.reset(new TxFileStorage(options, cachePath, _callback));
+		_pImpl.reset(new TxFileStorage(options, cachePath));
 }
 
 bool TxCache::add(Checksum checksum, GHQTexInfo *info, int dataSize)

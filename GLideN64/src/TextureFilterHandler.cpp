@@ -97,8 +97,7 @@ void TextureFilterHandler::init()
 		pTexCachePath, // path to store cache files
 		pTexDumpPath, // path to folder with dumped textures
 		pTexPackPath, // path to texture packs folder
-		wRomName, // name of ROM. must be no longer than 256 characters
-		displayLoadProgress);
+		wRomName); // name of ROM. must be no longer than 256 characters
 #endif
 }
 

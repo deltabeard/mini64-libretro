@@ -26,9 +26,8 @@
 #include "Ext_TxFilter.h"
 
 typedef boolean (*txfilter_init)(int maxwidth, int maxheight, int maxbpp,
-								 int options, int cachesize,
-								 const wchar_t *path, const wchar_t *ident,
-								 dispInfoFuncExt callback);
+		int options, int cachesize,
+		const wchar_t *path, const wchar_t *ident);
 
 typedef void (*txfilter_shutdown)(void);
 
@@ -66,8 +65,7 @@ void ext_ghq_shutdown(void)
 }
 
 boolean ext_ghq_init(int maxwidth, int maxheight, int maxbpp, int options, int cachesize,
-					 const wchar_t *path, const wchar_t *ident,
-					 dispInfoFuncExt callback)
+					 const wchar_t *path, const wchar_t *ident)
 {
   boolean bRet = 0;
 
