@@ -31,14 +31,14 @@ CHECK_LIB := brcmGLESv2
 USE_GLRPI := $(IS_LIB_AVAIL)
 
 # Prioritise OpenGL before OpenGLES if both are available.
-ifeq ($(USE_GL),1)
+ifeq ($(USE_GL32),1)
+	GL_LIB := -lopengl32
+	platform ?= win
+else ifeq ($(USE_GL),1)
 	GL_LIB := -lGL
 else ifeq ($(USE_GLES),1)
 	GL_LIB := -lGLESv2
 	GLES = 1
-else ifeq ($(USE_GL32),1)
-	GL_LIB := -lopengl32
-	platform ?= win
 else ifeq ($(USE_GLRPI),1)
 	GL_LIB := -L/opt/vc/lib -lbrcmGLESv2
 	EGL_LIB := -lbrcmEGL
@@ -56,6 +56,19 @@ endif
 
 # If rpi given as platform, attempt to automatically select CPUFLAGS
 ifeq ($(platform), rpi)
+   RPI_CPU := $(shell $(MAKE) -C ./tools get_rpi_cpu &> /dev/null; \
+      ./tools/get_rpi_cpu /proc/cpuinfo)
+   ifeq ($(RPI_CPU), BCM2835)
+      platform := rpi1
+   else ifeq ($(RPI_CPU), BCM2836)
+      platform := rpi2
+   else ifeq ($(RPI_CPU), BCM2837)
+      platform := rpi3
+   else ifeq ($(RPI_CPU), BCM2711)
+      platform := rpi4
+   else
+      $(error Please specify a specific version of the Raspberry Pi. Eg. make platform=rpi3)
+   endif
 endif
 
 # Assume platform is unix if not set to win previously, or forced by user.
@@ -87,27 +100,27 @@ CC_AS ?= $(CC)
 
 GIT_VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 ifneq ($(GIT_VERSION),)
-	COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+   COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 
 ifeq ($(platform), win)
-	ifeq ($(ARCH), x86_64)
-		ASFLAGS := -f win64 -d WIN64
-	else
-		ASFLAGS := -f win32 -f WIN32 -d LEADING_UNDERSCORE
-	endif
+   ifeq ($(ARCH), x86_64)
+      ASFLAGS := -f win64 -d WIN64
+   else
+      ASFLAGS := -f win32 -f WIN32 -d LEADING_UNDERSCORE
+   endif
 else
-	ifeq ($(ARCH), x86_64)
-		ASFLAGS := -f elf64 -d ELF_TYPE
-	else
-		ASFLAGS := -f elf -d ELF_TYPE
-	endif
+   ifeq ($(ARCH), x86_64)
+      ASFLAGS := -f elf64 -d ELF_TYPE
+   else
+      ASFLAGS := -f elf -d ELF_TYPE
+   endif
 endif
 
 LDFLAGS := -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
 
 # Linux
-ifneq (,$(findstring unix,$(platform)))
+ifeq ($(platform), unix)
    TARGET := $(TARGET_NAME)_libretro.so
 
 # TODO: Check if OS defines are required.
@@ -116,13 +129,15 @@ ifneq (,$(findstring unix,$(platform)))
 # Raspberry Pi
 else ifneq (,$(findstring rpi,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
-   ifneq (,$(findstring rpi2,$(platform)))
-      CPUFLAGS += -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
+   ifeq ($(platform), rpi1)
+	   CPUFLAGS += -march=armv6j -mfpu=vfp -mfloat-abi=hard
+   else ifeq ($(platform), rpi2)
+      CPUFLAGS += -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
       HAVE_NEON = 1
-   else ifneq (,$(findstring rpi3,$(platform)))
+   else ifeq ($(platform), rpi3)
       CPUFLAGS += -march=armv8-a+crc -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
       HAVE_NEON = 1
-   else ifneq (,$(findstring rpi4,$(platform)))
+   else ifeq ($(platform), rpi4)
       CPUFLAGS += -march=armv8-a+crc -mtune=cortex-a72 -mfpu=neon-fp-armv8 -mfloat-abi=hard
       HAVE_NEON = 1
    endif
