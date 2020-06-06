@@ -96,11 +96,11 @@ void ResizeVideoOutput(int width, int height){
 DEFINE_GFX(gln64);
 
 gfx_plugin_functions gfx;
+rsp_plugin_functions rsp;
 GFX_INFO gfx_info;
+RSP_INFO rsp_info;
 audio_plugin_functions audio;
 input_plugin_functions input;
-rsp_plugin_functions rsp;
-RSP_INFO rsp_info;
 
 const audio_plugin_functions dummy_audio = {
     dummyaudio_PluginGetVersion,
@@ -174,14 +174,6 @@ static void EmptyFunc(void)
 // Define RSP Interfaces
 DEFINE_RSP(hle);
 
-#ifdef HAVE_PARALLEL_RSP
-DEFINE_RSP(parallelRSP);
-#endif // HAVE_PARALLEL_RSP
-
-#if HAVE_LLE
-DEFINE_RSP(cxd4);
-#endif // HAVE_LLE
-
 static void                     (*l_mainRenderCallback)(int) = NULL;
 static ptr_SetRenderingCallback   l_old1SetRenderingCallback = NULL;
 
@@ -196,8 +188,11 @@ static void backcompat_setRenderCallbackIntercept(void (*callback)(int))
     l_mainRenderCallback = callback;
 }
 
+/* TODO: Initialise gfx to gfx_gln64. */
 m64p_error plugin_start_gfx(void)
 {
+    gfx = gfx_gln64;
+
     /* fill in the GFX_INFO data structure */
     gfx_info.HEADER = (unsigned char *)mem_base_u32(g_mem_base, MM_CART_ROM);
     gfx_info.RDRAM = (unsigned char *)mem_base_u32(g_mem_base, MM_RDRAM_DRAM);
@@ -294,6 +289,8 @@ static m64p_error plugin_start_input(void)
 
 static m64p_error plugin_start_rsp(void)
 {
+    rsp = rsp_hle;
+
     /* fill in the RSP_INFO data structure */
     rsp_info.RDRAM = (unsigned char *)mem_base_u32(g_mem_base, MM_RDRAM_DRAM);
     rsp_info.DMEM = (unsigned char *)mem_base_u32(g_mem_base, MM_RSP_MEM);
@@ -328,63 +325,12 @@ static m64p_error plugin_start_rsp(void)
     return M64ERR_SUCCESS;
 }
 
-m64p_error plugin_start(m64p_plugin_type type)
-{
-    switch(type)
-    {
-        case M64PLUGIN_RSP:
-            return plugin_start_rsp();
-        case M64PLUGIN_GFX:
-            return plugin_start_gfx();
-        case M64PLUGIN_AUDIO:
-            return plugin_start_audio();
-        case M64PLUGIN_INPUT:
-            return plugin_start_input();
-        default:
-            return M64ERR_INPUT_INVALID;
-    }
-
-    return M64ERR_INTERNAL;
-}
-
-// TODO: Remove this. We know our frontend initialises the required plugins.
-m64p_error plugin_check(void)
-{
-    if (!l_GfxAttached)
-        DebugMessage(M64MSG_WARNING, "No video plugin attached.  There will be no video output.");
-    if (!l_RspAttached)
-        DebugMessage(M64MSG_WARNING, "No RSP plugin attached.  The video output will be corrupted.");
-    if (!l_AudioAttached)
-        DebugMessage(M64MSG_WARNING, "No audio plugin attached.  There will be no sound output.");
-    if (!l_InputAttached)
-        DebugMessage(M64MSG_WARNING, "No input plugin attached.  You won't be able to control the game.");
-
-    return M64ERR_SUCCESS;
-}
-
 #ifdef __LIBRETRO__
-enum rdp_plugin_type current_rdp_type = RDP_PLUGIN_NONE;
-enum rsp_plugin_type current_rsp_type = RSP_PLUGIN_NONE;
-
-void plugin_connect_rdp_api(enum rdp_plugin_type type)
-{
-    current_rdp_type = type;
-}
-
-void plugin_connect_rsp_api(enum rsp_plugin_type type)
-{
-    current_rsp_type = type;
-}
-
 /* global functions */
 void plugin_connect_all()
 {
-    gfx = gfx_gln64;
-
     l_GfxAttached = 1;
     plugin_start_gfx();
-
-    rsp = rsp_hle;
 
     l_RspAttached = 1;
     plugin_start_rsp();
@@ -401,11 +347,9 @@ void plugin_connect_all()
 /* global functions */
 void plugin_connect_all()
 {
-    gfx = gfx_gln64;
     l_GfxAttached = 1;
     plugin_start_gfx();
 
-    rsp = rsp_hle;
     l_RspAttached = 1;
     plugin_start_rsp();
 

@@ -10,7 +10,7 @@ COREFLAGS := -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ \
 	-DMUPENPLUSAPI
 CPUFLAGS  :=
 GLFLAGS   :=
-USE_LTO   ?= 1
+USE_LTO   ?= 0
 PIC       ?= 1
 AWK       ?= awk
 STRINGS   ?= strings
@@ -420,7 +420,7 @@ endif
 
 ifeq ($(DEBUG), 1)
    CPUOPTS += -Og -g3
-   CPUOPTS += -DOPENGL_DEBUG
+   #CPUOPTS += -DOPENGL_DEBUG
 else
    CPUOPTS += -DNDEBUG -fsigned-char -ffast-math -fno-strict-aliasing -fomit-frame-pointer -fvisibility=hidden
 ifneq ($(platform), libnx)

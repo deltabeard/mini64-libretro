@@ -107,7 +107,6 @@ uint32_t *blitter_buf = NULL;
 uint32_t *blitter_buf_lock = NULL;
 uint32_t retro_screen_width = 640;
 uint32_t retro_screen_height = 480;
-uint32_t screen_pitch = 0;
 
 float retro_screen_aspect = 4.0 / 3.0;
 
@@ -597,9 +596,6 @@ static void update_variables(void)
 {
     struct retro_variable var;
 
-    plugin_connect_rdp_api(RDP_PLUGIN_GLIDEN64);
-    plugin_connect_rsp_api(RSP_PLUGIN_HLE);
-
     var.key = CORE_NAME "-BilinearMode";
     var.value = NULL;
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -936,7 +932,7 @@ static void update_variables(void)
     if(EnableFullspeed)
     {
         CountPerOp = 1; // Force CountPerOp == 1
-        if(current_rdp_type == RDP_PLUGIN_GLIDEN64 && !EnableFBEmulation)
+        if(!EnableFBEmulation)
             EnableFrameDuping = 1;
     }
 
@@ -1026,15 +1022,12 @@ static void context_reset(void)
 {
     static bool first_init = true;
 
-    if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
+    log_cb(RETRO_LOG_DEBUG, CORE_NAME ": context_reset()\n");
+    glsm_ctl(GLSM_CTL_STATE_CONTEXT_RESET, NULL);
+    if (first_init)
     {
-       log_cb(RETRO_LOG_DEBUG, CORE_NAME ": context_reset()\n");
-       glsm_ctl(GLSM_CTL_STATE_CONTEXT_RESET, NULL);
-       if (first_init)
-       {
-          glsm_ctl(GLSM_CTL_STATE_SETUP, NULL);
-          first_init = false;
-       }
+        glsm_ctl(GLSM_CTL_STATE_SETUP, NULL);
+        first_init = false;
     }
 
     reinit_gfx_plugin();
@@ -1042,10 +1035,7 @@ static void context_reset(void)
 
 static void context_destroy(void)
 {
-    if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
-    {
-       glsm_ctl(GLSM_CTL_STATE_CONTEXT_DESTROY, NULL);
-    }
+    glsm_ctl(GLSM_CTL_STATE_CONTEXT_DESTROY, NULL);
 }
 
 static bool context_framebuffer_lock(void *data)
@@ -1076,7 +1066,7 @@ bool retro_load_game(const struct retro_game_info *game)
     params.stencil               = false;
 
     params.framebuffer_lock      = context_framebuffer_lock;
-    if (current_rdp_type == RDP_PLUGIN_GLIDEN64 && !glsm_ctl(GLSM_CTL_STATE_CONTEXT_INIT, &params))
+    if (!glsm_ctl(GLSM_CTL_STATE_CONTEXT_INIT, &params))
     {
         if (log_cb)
             log_cb(RETRO_LOG_ERROR, "libretro frontend doesn't have OpenGL support\n");
@@ -1109,31 +1099,18 @@ void retro_run (void)
        update_controllers();
     }
 
-    if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
-    {
-       glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
-    }
-
+    glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
     co_switch(game_thread);
-
-    if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
-    {
-       glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
-    }
+    glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
 
     if (libretro_swap_buffer)
     {
-       if(current_rdp_type == RDP_PLUGIN_GLIDEN64)
-       {
-          video_cb(RETRO_HW_FRAME_BUFFER_VALID, retro_screen_width, retro_screen_height, 0);
-       }
+        video_cb(RETRO_HW_FRAME_BUFFER_VALID, retro_screen_width, retro_screen_height, 0);
     }
     else if(EnableFrameDuping)
     {
-        // screen_pitch will be 0 for GLN
-        video_cb(NULL, retro_screen_width, retro_screen_height, screen_pitch);
+        video_cb(NULL, retro_screen_width, retro_screen_height, 0);
     }
-
 }
 
 void retro_reset (void)

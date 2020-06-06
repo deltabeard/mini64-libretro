@@ -32,13 +32,6 @@ extern "C" {
 #include "api/m64p_plugin.h"
 #include "api/m64p_types.h"
 
-enum rdp_plugin_type
-{
-   RDP_PLUGIN_NONE = 0,
-   RDP_PLUGIN_GLIDEN64,
-   RDP_PLUGIN_MAX
-};
-
 enum rsp_plugin_type
 {
    RSP_PLUGIN_NONE = 0,
@@ -47,13 +40,11 @@ enum rsp_plugin_type
 };
 
 void plugin_connect_rsp_api(enum rsp_plugin_type type);
-void plugin_connect_rdp_api(enum rdp_plugin_type type);
 void plugin_connect_all();
 
 uint32_t get_retro_screen_width();
 uint32_t get_retro_screen_height();
 
-extern enum rdp_plugin_type current_rdp_type;
 extern enum rsp_plugin_type current_rsp_type;
 extern bool libretro_swap_buffer;
 

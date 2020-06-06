@@ -61,9 +61,9 @@ struct cached_interp
 };
 
 enum {
-    EMUMODE_PURE_INTERPRETER = 0,
-    EMUMODE_INTERPRETER      = 1,
-    EMUMODE_DYNAREC          = 2,
+    EMUMODE_DYNAREC          = 0,
+    EMUMODE_PURE_INTERPRETER = 1,
+    EMUMODE_INTERPRETER      = 2,
 };
 
 

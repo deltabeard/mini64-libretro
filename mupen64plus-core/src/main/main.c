@@ -814,8 +814,6 @@ void main_change_gb_cart(int control_id)
 /*********************************************************************************************************
 * emulation thread - runs the core
 */
-extern gfx_plugin_functions gfx_gln64;
-extern rsp_plugin_functions rsp_hle;
 extern input_plugin_functions dummy_input;
 extern audio_plugin_functions dummy_audio;
 
