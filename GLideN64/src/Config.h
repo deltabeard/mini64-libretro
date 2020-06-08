@@ -22,12 +22,8 @@ struct Config
 
 	struct
 	{
-		u32 fullscreen;
-		u32 windowedWidth, windowedHeight;
-		u32 fullscreenWidth, fullscreenHeight, fullscreenRefresh;
 		u32 fxaa;
 		u32 multisampling;
-		u32 verticalSync;
 		u32 threadedVideo;
 	} video;
 
@@ -37,7 +33,6 @@ struct Config
 		f32 maxAnisotropyF;
 		u32 bilinearMode;
 		u32 enableHalosRemoval;
-		u32 screenShotFormat;
 	} texture;
 
 	enum TexrectCorrectionMode {
@@ -114,69 +109,42 @@ struct Config
 	};
 
 	struct {
-		u32 enable;
-		u32 aspect; // 0: stretch ; 1: 4/3 ; 2: 16/9; 3: adjust
-		u32 bufferSwapMode; // 0: on VI update call; 1: on VI origin change; 2: on main frame buffer update
-		u32 nativeResFactor;
-		u32 N64DepthCompare;
-		u32 forceDepthBufferClear;
-		u32 copyAuxToRDRAM;
+		u8 enable : 1;
+		u8 aspect : 2;
+		u8 bufferSwapMode : 2; // 0: on VI update call; 1: on VI origin change; 2: on main frame buffer update
+		u8 nativeResFactor : 1;
+		u8 N64DepthCompare : 1;
+		u8 forceDepthBufferClear : 1;
+		u8 copyAuxToRDRAM : 1;
+		u8 fbInfoReadDepthChunk : 1;
+		u8 fbInfoReadColorChunk : 1;
+		u8 fbInfoDisabled : 1;
 		// Buffer read/write
-		u32 copyToRDRAM;
-		u32 copyDepthToRDRAM;
-		u32 copyFromRDRAM;
-
-		// FBInfo
-		u32 fbInfoSupported;
-		u32 fbInfoDisabled;
-		u32 fbInfoReadColorChunk;
-		u32 fbInfoReadDepthChunk;
+		u8 copyToRDRAM : 2;
+		u8 copyDepthToRDRAM : 2;
+		u8 copyFromRDRAM : 2;
 
 		// Depth buffer copy. For Reshade.
-		u32 copyDepthToMainDepthBuffer;
-
-		// Overscan
-		u32 enableOverscan;
-		struct {
-			s32 left = 0;
-			s32 right = 0;
-			s32 top = 0;
-			s32 bottom = 0;
-		} overscanPAL, overscanNTSC;
+		u8 copyDepthToMainDepthBuffer : 1;
 	} frameBufferEmulation;
 
 	struct
 	{
-		u32 txFilterMode;				// Texture filtering mode, eg Sharpen
-		u32 txEnhancementMode;			// Texture enhancement mode, eg 2xSAI
-		u32 txDeposterize;				// Deposterize texture before enhancement
-		u32 txFilterIgnoreBG;			// Do not apply filtering to backgrounds textures
-		u32 txCacheSize;				// Cache size in Mbytes
+		u8 txFilterMode;			// Texture filtering mode, eg Sharpen
+		u8 txEnhancementMode;			// Texture enhancement mode, eg 2xSAI
+		/* FIXME: Remove unused option. */
+		u8 txDeposterize : 1;			// Deposterize texture before enhancement
+		u8 txFilterIgnoreBG : 1;		// Do not apply filtering to backgrounds textures
+		u32 txCacheSize;			// Cache size in Mbytes
 
-		u32 txHiresEnable;				// Use high-resolution texture packs
-		u32 txHiresFullAlphaChannel;	// Use alpha channel fully
-		u32 txHresAltCRC;				// Use alternative method of paletted textures CRC calculation
-		u32 txDump;						// Dump textures
-
-		u32 txForce16bpp;				// Force use 16bit color textures
-		u32 txCacheCompression;			// Zip textures cache
-		u32 txSaveCache;				// Save texture cache to hard disk
-
-		u32 txEnhancedTextureFileStorage;	// Use file storage instead of memory cache for enhanced textures.
-		u32 txHiresTextureFileStorage;		// Use file storage instead of memory cache for hires textures.
+		u8 txHiresEnable : 1;			// Use high-resolution texture packs
+		u8 txHiresFullAlphaChannel : 1;	// Use alpha channel fully
+		u8 txHresAltCRC : 1;			// Use alternative method of paletted textures CRC calculation
+		u32 txForce16bpp;			// Force use 16bit color textures
 
 		wchar_t txPath[PLUGIN_PATH_SIZE]; // Path to texture packs
 		wchar_t txCachePath[PLUGIN_PATH_SIZE]; // Path to store texture cache, that is .htc files
-		wchar_t txDumpPath[PLUGIN_PATH_SIZE]; // Path to store texture dumps
 	} textureFilter;
-
-	struct
-	{
-		std::string name;
-		u32 size;
-		u8 color[4];
-		float colorf[4];
-	} font;
 
 	struct {
 		u32 force;

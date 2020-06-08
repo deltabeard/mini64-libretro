@@ -132,8 +132,6 @@ namespace opengl {
 
 		graphics::ShaderProgram * createFXAAShader() override;
 
-		graphics::TextDrawerShaderProgram * createTextDrawerShader() override;
-
 		void resetShaderProgram() override;
 
 		void drawTriangles(const graphics::Context::DrawTriangleParameters & _params) override;

@@ -47,20 +47,10 @@ u32 TextureFilterHandler::_getConfigOptions() const
 		options |= RICE_HIRESTEXTURES;
 	if (config.textureFilter.txForce16bpp)
 		options |= FORCE16BPP_TEX | FORCE16BPP_HIRESTEX;
-	if (config.textureFilter.txCacheCompression)
-		options |= GZ_TEXCACHE | GZ_HIRESTEXCACHE;
-	if (config.textureFilter.txSaveCache)
-		options |= (DUMP_TEXCACHE | DUMP_HIRESTEXCACHE);
 	if (config.textureFilter.txHiresFullAlphaChannel)
 		options |= LET_TEXARTISTS_FLY;
-	if (config.textureFilter.txDump)
-		options |= DUMP_TEX;
 	if (config.textureFilter.txDeposterize)
 		options |= DEPOSTERIZE;
-	if (config.textureFilter.txEnhancedTextureFileStorage)
-		options |= FILE_TEXCACHE;
-	if (config.textureFilter.txHiresTextureFileStorage)
-		options |= FILE_HIRESTEXCACHE;
 	return options;
 }
 
@@ -86,16 +76,12 @@ void TextureFilterHandler::init()
 	wchar_t txCachePath[PLUGIN_PATH_SIZE + 16];
 	wchar_t * pTexCachePath = config.textureFilter.txCachePath;
 
-	wchar_t txDumpPath[PLUGIN_PATH_SIZE + 16];
-	wchar_t * pTexDumpPath = config.textureFilter.txDumpPath;
-
 	m_inited = txfilter_init(maxTextureSize, // max texture width supported by hardware
 		maxTextureSize, // max texture height supported by hardware
 		32, // max texture bpp supported by hardware
 		m_options,
 		config.textureFilter.txCacheSize, // cache texture to system memory
 		pTexCachePath, // path to store cache files
-		pTexDumpPath, // path to folder with dumped textures
 		pTexPackPath, // path to texture packs folder
 		wRomName); // name of ROM. must be no longer than 256 characters
 #endif
@@ -108,14 +94,6 @@ void TextureFilterHandler::shutdown()
 		txfilter_shutdown();
 		m_inited = m_options = 0;
 	}
-#endif
-}
-
-void TextureFilterHandler::dumpcache()
-{
-#ifndef NODHQ
-	if (isInited())
-		txfilter_dumpcache();
 #endif
 }
 

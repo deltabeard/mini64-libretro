@@ -106,20 +106,7 @@ TxMemoryCache::TxMemoryCache(uint32 options,
 	, _cacheLimit(cacheLimit)
 	, _totalSize(0U)
 {
-	/* zlib memory buffers to (de)compress hires textures */
-	if (_options & (GZ_TEXCACHE | GZ_HIRESTEXCACHE)) {
-		_gzdest0 = TxMemBuf::getInstance()->get(0);
-		_gzdest1 = TxMemBuf::getInstance()->get(1);
-		_gzdestLen = (TxMemBuf::getInstance()->size_of(0) < TxMemBuf::getInstance()->size_of(1)) ?
-			TxMemBuf::getInstance()->size_of(0) : TxMemBuf::getInstance()->size_of(1);
-
-		if (!_gzdest0 || !_gzdest1 || !_gzdestLen) {
-			_options &= ~(GZ_TEXCACHE | GZ_HIRESTEXCACHE);
-			_gzdest0 = nullptr;
-			_gzdest1 = nullptr;
-			_gzdestLen = 0;
-		}
-	}
+	return;
 }
 
 TxMemoryCache::~TxMemoryCache()
@@ -143,20 +130,6 @@ bool TxMemoryCache::add(Checksum checksum, GHQTexInfo *info, int dataSize)
 
 		if (!dataSize)
 			return false;
-
-		if (_options & (GZ_TEXCACHE | GZ_HIRESTEXCACHE)) {
-			/* zlib compress it. compression level:1 (best speed) */
-			uLongf destLen = _gzdestLen;
-			dest = (dest == _gzdest0) ? _gzdest1 : _gzdest0;
-			if (compress2(dest, &destLen, info->data, dataSize, 1) != Z_OK) {
-				dest = info->data;
-				DBG_INFO(80, wst("Error: zlib compression failed!\n"));
-			} else {
-				DBG_INFO(80, wst("zlib compressed: %.02fkb->%.02fkb\n"), (float)dataSize / 1000, (float)destLen / 1000);
-				dataSize = destLen;
-				format |= GL_TEXFMT_GZ;
-			}
-		}
 	}
 
 	/* if cache size exceeds limit, remove old cache */
@@ -448,18 +421,6 @@ TxFileStorage::TxFileStorage(uint32 options,
 	/* save path name */
 	if (cachePath)
 		_cachePath.assign(cachePath);
-
-	_gzdest0 = TxMemBuf::getInstance()->get(0);
-	_gzdest1 = TxMemBuf::getInstance()->get(1);
-	_gzdestLen = (TxMemBuf::getInstance()->size_of(0) < TxMemBuf::getInstance()->size_of(1)) ?
-		TxMemBuf::getInstance()->size_of(0) : TxMemBuf::getInstance()->size_of(1);
-
-	if (!_gzdest0 || !_gzdest1 || !_gzdestLen) {
-		_options &= ~(GZ_TEXCACHE | GZ_HIRESTEXCACHE);
-		_gzdest0 = nullptr;
-		_gzdest1 = nullptr;
-		_gzdestLen = 0;
-	}
 }
 
 #define FWRITE(a) _outfile.write((char*)(&a), sizeof(a))

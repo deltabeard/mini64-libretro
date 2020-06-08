@@ -94,16 +94,11 @@ typedef unsigned char boolean;
 #define FILE_CACHE_MASK     0x00300000
 #define FILE_TEXCACHE       0x00100000
 #define FILE_HIRESTEXCACHE  0x00200000
-#define GZ_TEXCACHE         0x00400000
-#define GZ_HIRESTEXCACHE    0x00800000
-#define DUMP_TEXCACHE       0x01000000
-#define DUMP_HIRESTEXCACHE  0x02000000
 #define TILE_HIRESTEX       0x04000000
 #define UNDEFINED_0         0x08000000
 #define FORCE16BPP_HIRESTEX 0x10000000
 #define FORCE16BPP_TEX      0x20000000
 #define LET_TEXARTISTS_FLY  0x40000000 /* a little freedom for texture artists */
-#define DUMP_TEX            0x80000000
 
 struct GHQTexInfo {
   unsigned char *data = nullptr;
@@ -145,7 +140,7 @@ extern "C"{
 
 TAPI boolean TAPIENTRY
 txfilter_init(int maxwidth, int maxheight, int maxbpp, int options, int cachesize,
-	const wchar_t *txCachePath, const wchar_t *txDumpPath, const wchar_t * texPackPath,
+	const wchar_t *txCachePath, const wchar_t * texPackPath,
 	const wchar_t* ident);
 
 TAPI void TAPIENTRY

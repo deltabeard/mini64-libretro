@@ -139,9 +139,10 @@ uint32_t CountPerScanlineOverride = 0;
 uint32_t BackgroundMode = 0; // 0 is bgOnePiece
 uint32_t EnableEnhancedTextureStorage;
 uint32_t EnableEnhancedHighResStorage;
-uint32_t EnableTxCacheCompression = 0;
 uint32_t ForceDisableExtraMem = 0;
 uint32_t EnableNativeResFactor = 0;
+
+/* FIXME: Unset option. */
 uint32_t EnableN64DepthCompare = 0;
 
 extern struct device g_dev;
@@ -801,13 +802,6 @@ static void update_variables(void)
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
         txHiresEnable = !strcmp(var.value, "False") ? 0 : 1;
-    }
-
-    var.key = CORE_NAME "-txCacheCompression";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        EnableTxCacheCompression = !strcmp(var.value, "False") ? 0 : 1;
     }
 
     var.key = CORE_NAME "-txHiresFullAlphaChannel";

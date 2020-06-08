@@ -72,13 +72,6 @@ extern uint32_t ForceDisableExtraMem;
 extern uint32_t EnableNativeResFactor;
 extern uint32_t EnableN64DepthCompare;
 
-// Overscan Options
-extern uint32_t EnableOverscan;
-extern uint32_t OverscanTop;
-extern uint32_t OverscanLeft;
-extern uint32_t OverscanRight;
-extern uint32_t OverscanBottom;
-
 // Others
 #define RETRO_MEMORY_DD 0x100 + 1
 #define RETRO_GAME_TYPE_DD  1

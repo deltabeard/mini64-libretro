@@ -62,7 +62,6 @@ TxFilter::TxFilter(int maxwidth,
 				   int options,
 				   int cachesize,
 				   const wchar_t * texCachePath,
-				   const wchar_t * texDumpPath,
 				   const wchar_t * texPackPath,
 				   const wchar_t * ident)
 	: _tex1(nullptr)
@@ -80,7 +79,7 @@ TxFilter::TxFilter(int maxwidth,
 			_options   == options   &&
 			_cacheSize == cachesize) return;
 	//  clear(); /* gcc does not allow the destructor to be called */
-	if (texCachePath == nullptr || texDumpPath == nullptr || texPackPath == nullptr)
+	if (texCachePath == nullptr || texPackPath == nullptr)
 		return;
 
 #if 0
@@ -120,10 +119,6 @@ TxFilter::TxFilter(int maxwidth,
 	_cacheSize = cachesize;
 
 	/* TODO: validate options and do overrides here*/
-
-	/* save pathes */
-	if (texDumpPath)
-		_dumpPath.assign(texDumpPath);
 
 	/* save ROM name */
 	if (ident && wcscmp(ident, wst("DEFAULT")) != 0)
@@ -565,15 +560,9 @@ TxFilter::hirestex(uint64 g64crc, uint64 r_crc64, uint16 *palette, GHQTexInfo *i
 uint64
 TxFilter::checksum64(uint8 *src, int width, int height, int size, int rowStride, uint8 *palette)
 {
-	if (_options & (HIRESTEXTURES_MASK|DUMP_TEX))
+	if (_options & HIRESTEXTURES_MASK)
 		return TxUtil::checksum64(src, width, height, size, rowStride, palette);
 
-	return 0;
-}
-
-boolean
-TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, ColorFormat gfmt, uint16 n64fmt, uint64 r_crc64)
-{
 	return 0;
 }
 
@@ -589,15 +578,4 @@ TxFilter::reloadhirestex()
 
 	_options &= ~HIRESTEXTURES_MASK;
 	return 0;
-}
-
-void
-TxFilter::dumpcache()
-{
-	_txTexCache->dump();
-
-	/* hires texture */
-#if HIRES_TEXTURE
-	_txHiResCache->dump();
-#endif
 }

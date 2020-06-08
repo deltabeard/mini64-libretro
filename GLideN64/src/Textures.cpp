@@ -798,15 +798,6 @@ void TextureCache::_loadBackground(CachedTexture *pTexture)
 		return;
 	}
 
-	if (m_toggleDumpTex &&
-		config.textureFilter.txHiresEnable != 0 &&
-		config.textureFilter.txDump != 0) {
-		txfilter_dmptx((u8*)pDest, pTexture->width, pTexture->height,
-			pTexture->width, (u16)u32(glInternalFormat),
-			(unsigned short)(pTexture->format << 8 | pTexture->size),
-			ricecrc);
-	}
-
 	bool bLoaded = false;
 	if ((config.textureFilter.txEnhancementMode | config.textureFilter.txFilterMode) != 0 &&
 			config.textureFilter.txFilterIgnoreBG == 0 &&
@@ -1139,17 +1130,6 @@ void TextureCache::_load(u32 _tile, CachedTexture *_pTexture)
 			free(pDest);
 			return;
 		}
-
-#ifndef NODHQ
-		if (m_toggleDumpTex &&
-				config.textureFilter.txHiresEnable != 0 &&
-				config.textureFilter.txDump != 0) {
-			txfilter_dmptx((u8*)pDest, tmptex.width, tmptex.height,
-					tmptex.width, (u16)u32(glInternalFormat),
-					(unsigned short)(_pTexture->format << 8 | _pTexture->size),
-					ricecrc);
-		}
-#endif
 
 		bool bLoaded = false;
 		bool needEnhance = (config.textureFilter.txEnhancementMode | config.textureFilter.txFilterMode) != 0 &&

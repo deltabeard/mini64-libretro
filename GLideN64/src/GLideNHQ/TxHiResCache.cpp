@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define HIRES_DUMP_ENABLED (FILE_HIRESTEXCACHE|DUMP_HIRESTEXCACHE)
+#define HIRES_DUMP_ENABLED (FILE_HIRESTEXCACHE)
 
 TxHiResCache::~TxHiResCache()
 {
@@ -56,7 +56,7 @@ TxHiResCache::TxHiResCache(int maxwidth,
 		const wchar_t *cachePath,
 		const wchar_t *texPackPath,
 		const wchar_t *ident)
-	: TxCache((options & ~(GZ_TEXCACHE | FILE_TEXCACHE)), 0, cachePath, ident)
+	: TxCache((options & ~FILE_TEXCACHE), 0, cachePath, ident)
 	, _maxwidth(maxwidth)
 	, _maxheight(maxheight)
 	, _maxbpp(maxbpp)
@@ -88,14 +88,6 @@ TxHiResCache::TxHiResCache(int maxwidth,
 	}
 }
 
-void TxHiResCache::dump()
-{
-	if ((getOptions() & HIRES_DUMP_ENABLED) && !_cacheDumped && !_abortLoad && !empty()) {
-	  /* dump cache to disk */
-	  _cacheDumped = TxCache::save();
-	}
-}
-
 tx_wstring TxHiResCache::_getFileName() const
 {
 	tx_wstring filename = _ident + wst("_HIRESTEXTURES.");
@@ -110,7 +102,6 @@ int TxHiResCache::_getConfig() const
 		(HIRESTEXTURES_MASK |
 		TILE_HIRESTEX |
 		FORCE16BPP_HIRESTEX |
-		GZ_HIRESTEXCACHE |
 		FILE_HIRESTEXCACHE |
 		LET_TEXARTISTS_FLY);
 }

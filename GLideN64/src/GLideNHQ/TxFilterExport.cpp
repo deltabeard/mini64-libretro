@@ -35,12 +35,12 @@ extern "C"{
 
 TAPI boolean TAPIENTRY
 txfilter_init(int maxwidth, int maxheight, int maxbpp, int options, int cachesize,
-	const wchar_t * txCachePath, const wchar_t* txDumpPath, const wchar_t * texPackPath, const wchar_t * ident)
+	const wchar_t * txCachePath, const wchar_t * texPackPath, const wchar_t * ident)
 {
   if (txFilter) return 0;
 
   txFilter = new TxFilter(maxwidth, maxheight, maxbpp, options, cachesize,
-	  txCachePath, txDumpPath, texPackPath, ident);
+	  txCachePath, texPackPath, ident);
 
   return 1;
 }
@@ -83,15 +83,6 @@ txfilter_checksum(uint8 *src, int width, int height, int size, int rowStride, ui
 }
 
 TAPI boolean TAPIENTRY
-txfilter_dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gfmt, uint16 n64fmt, uint64 r_crc64)
-{
-  if (txFilter)
-	return txFilter->dmptx(src, width, height, rowStridePixel, ColorFormat(u32(gfmt)), n64fmt, r_crc64);
-
-  return 0;
-}
-
-TAPI boolean TAPIENTRY
 txfilter_reloadhirestex()
 {
   if (txFilter)
@@ -99,14 +90,6 @@ txfilter_reloadhirestex()
 
   return 0;
 }
-
-TAPI void TAPIENTRY
-txfilter_dumpcache(void)
-{
-	if (txFilter)
-	  txFilter->dumpcache();
-}
-
 
 #ifdef __cplusplus
 }

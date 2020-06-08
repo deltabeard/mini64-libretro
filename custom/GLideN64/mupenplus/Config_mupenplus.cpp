@@ -129,24 +129,18 @@ extern "C" void Config_LoadConfig()
 	config.generalEmulation.enableShadersStorage = EnableShadersStorage;
 #endif
 
-	config.textureFilter.txSaveCache = EnableTextureCache;
-
 	config.textureFilter.txFilterMode = txFilterMode;
 	config.textureFilter.txEnhancementMode = txEnhancementMode;
 	config.textureFilter.txFilterIgnoreBG = txFilterIgnoreBG;
 	config.textureFilter.txHiresEnable = txHiresEnable;
-	config.textureFilter.txCacheCompression = EnableTxCacheCompression;
 	config.textureFilter.txHiresFullAlphaChannel = txHiresFullAlphaChannel;
 	config.video.fxaa = EnableFXAA;
 	config.video.multisampling = MultiSampling;
 
 	config.graphics2D.correctTexrectCoords = CorrectTexrectCoords;
 	config.graphics2D.enableNativeResTexrects = enableNativeResTexrects;
-
 	config.graphics2D.bgMode = BackgroundMode;
 
-	config.textureFilter.txEnhancedTextureFileStorage = EnableEnhancedTextureStorage;
-	config.textureFilter.txHiresTextureFileStorage = EnableEnhancedHighResStorage;
 	config.frameBufferEmulation.nativeResFactor = EnableNativeResFactor;
 
 	config.generalEmulation.hacks = hacks;

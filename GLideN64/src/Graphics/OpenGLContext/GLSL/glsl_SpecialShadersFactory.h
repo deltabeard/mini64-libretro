@@ -38,8 +38,6 @@ namespace glsl {
 
 		graphics::ShaderProgram * createFXAAShader() const;
 
-		graphics::TextDrawerShaderProgram * createTextDrawerShader() const;
-
 	private:
 		const opengl::GLInfo & m_glinfo;
 		const ShaderPart * m_vertexHeader;

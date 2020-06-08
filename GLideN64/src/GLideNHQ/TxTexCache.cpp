@@ -29,14 +29,14 @@
 #include "TxDbg.h"
 #include <zlib.h>
 
-#define TEXCACHE_DUMP_ENABLED (FILE_TEXCACHE|DUMP_TEXCACHE)
+#define TEXCACHE_DUMP_ENABLED (FILE_TEXCACHE)
 
 TxTexCache::~TxTexCache()
 {
 }
 
 TxTexCache::TxTexCache(int options, int cachesize, const wchar_t *cachePath, const wchar_t *ident)
-						 : TxCache((options & ~(GZ_HIRESTEXCACHE | FILE_HIRESTEXCACHE)), cachesize, cachePath, ident)
+						 : TxCache((options & ~FILE_HIRESTEXCACHE), cachesize, cachePath, ident)
 						 , _cacheDumped(false)
 {
 	/* assert local options */
@@ -82,6 +82,5 @@ int TxTexCache::_getConfig() const
 		(FILTER_MASK |
 		ENHANCEMENT_MASK |
 		FORCE16BPP_TEX |
-		FILE_TEXCACHE |
-		GZ_TEXCACHE);
+		FILE_TEXCACHE);
 }

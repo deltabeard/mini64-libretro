@@ -13,24 +13,13 @@ void Config::resetToDefaults()
 {
 	version = CONFIG_VERSION_CURRENT;
 
-#if defined(PANDORA) || defined(VC)
-	video.fullscreen = 1;
-	video.fullscreenWidth = video.windowedWidth = 800;
-#else
-	video.fullscreen = 0;
-	video.fullscreenWidth = video.windowedWidth = 640;
-#endif
-	video.fullscreenHeight = video.windowedHeight = 480;
-	video.fullscreenRefresh = 60;
 	video.fxaa = 0;
 	video.multisampling = 0;
-	video.verticalSync = 0;
 	video.threadedVideo = 0;
 
 	texture.maxAnisotropy = 0;
 	texture.bilinearMode = BILINEAR_STANDARD;
 	texture.enableHalosRemoval = 0;
-	texture.screenShotFormat = 0;
 
 	generalEmulation.enableLOD = 1;
 	generalEmulation.enableNoise = 1;
@@ -71,7 +60,6 @@ void Config::resetToDefaults()
 #else
 	frameBufferEmulation.fbInfoDisabled = 1;
 #endif
-	frameBufferEmulation.enableOverscan = 0;
 
 	textureFilter.txFilterMode = 0;
 	textureFilter.txEnhancementMode = 0;
@@ -82,19 +70,12 @@ void Config::resetToDefaults()
 	textureFilter.txHiresEnable = 0;
 	textureFilter.txHiresFullAlphaChannel = 1;
 	textureFilter.txHresAltCRC = 0;
-	textureFilter.txDump = 0;
 
 	textureFilter.txForce16bpp = 0;
-	textureFilter.txCacheCompression = 1;
-	textureFilter.txSaveCache = 1;
-
-	textureFilter.txEnhancedTextureFileStorage = 0;
-	textureFilter.txHiresTextureFileStorage = 0;
 
 	/* FIXME: Chang to buffer. */
 	gln_wcscat(textureFilter.txPath, wst("hires_texture"));
 	gln_wcscat(textureFilter.txCachePath, wst("cache"));
-	gln_wcscat(textureFilter.txDumpPath, wst("texture_dump"));
 
 	gammaCorrection.force = 0;
 	gammaCorrection.level = 2.0f;

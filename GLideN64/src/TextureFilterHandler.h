@@ -11,7 +11,6 @@ public:
 	~TextureFilterHandler() { shutdown(); }
 	void init();
 	void shutdown();
-	void dumpcache();
 	bool isInited() const { return m_inited != 0; }
 	bool optionsChanged() const { return _getConfigOptions() != m_options; }
 private:
