@@ -20,6 +20,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* strdup */
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -119,7 +122,7 @@ static retro_vfs_mkdir_t path_mkdir_cb = NULL;
 
 void path_vfs_init(const struct retro_vfs_interface_info* vfs_info)
 {
-   const struct retro_vfs_interface* 
+   const struct retro_vfs_interface*
       vfs_iface           = vfs_info->iface;
 
    path_stat_cb           = NULL;
@@ -190,7 +193,7 @@ bool path_mkdir(const char *dir)
    if (!(dir && *dir))
       return false;
 
-   /* Use heap. Real chance of stack 
+   /* Use heap. Real chance of stack
     * overflow if we recurse too hard. */
    basedir            = strdup(dir);
 
@@ -681,7 +684,7 @@ void path_parent_dir(char *path)
 
    if (!path)
       return;
-   
+
    len = strlen(path);
 
    if (len && path_char_is_slash(path[len - 1]))

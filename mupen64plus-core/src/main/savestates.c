@@ -22,6 +22,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/* strdup */
+#define _POSIX_C_SOURCE 200809L
+
 #ifdef USE_SDL
 #include <SDL.h>
 #include <SDL_thread.h>

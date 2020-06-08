@@ -34,8 +34,8 @@ void invalidate_block_esi(void);
 void invalidate_block_edi(void);
 
 // We need these for cmovcc instructions on x64
-static const u_int const_zero=0;
-static const u_int const_one=1;
+static const uint32_t const_zero=0;
+static const uint32_t const_one=1;
 
 static const uintptr_t jump_vaddr_reg[8] = {
   (uintptr_t)jump_vaddr_eax,
@@ -69,15 +69,15 @@ static const uintptr_t invalidate_block_reg[8] = {
 
 static void set_jump_target(uintptr_t addr,uintptr_t target)
 {
-  u_char *ptr=(u_char *)addr;
+  uint8_t *ptr=(uint8_t *)addr;
   if(*ptr==0x0f)
   {
     assert(ptr[1]>=0x80&&ptr[1]<=0x8f); // conditional jmp
-    u_int *ptr2=(u_int *)(ptr+2);
+    uint32_t *ptr2=(uint32_t *)(ptr+2);
     *ptr2=(intptr_t)target-(intptr_t)ptr2-4;
   }
   else if(*ptr==0xe8||*ptr==0xe9) {
-    u_int *ptr2=(u_int *)(ptr+1);
+    uint32_t *ptr2=(uint32_t *)(ptr+1);
     *ptr2=(intptr_t)target-(intptr_t)ptr2-4;
   }
   else
@@ -93,10 +93,10 @@ static void *add_pointer(void *src, void* addr)
 {
   int *ptr=(int*)src;
   int *ptr2=(int*)((uintptr_t)ptr+(uintptr_t)*ptr+4);
-  u_char *ptr3=(u_char*)ptr2;
+  uint8_t *ptr3=(uint8_t*)ptr2;
   assert((*(ptr3+1)&0xFF)==0x8d); //lea
   assert((*(ptr3+12)&0xFF)==0xe8); //call
-  u_int offset=(uintptr_t)addr-(uintptr_t)ptr-4;
+  uint32_t offset=(uintptr_t)addr-(uintptr_t)ptr-4;
   *ptr=offset;
   return (void*)ptr2;
 }
@@ -215,7 +215,7 @@ static void alloc_reg(struct regstat *cur,int i,signed char reg)
 
   // Ok, now we have to evict someone
   // Pick a register we hopefully won't need soon
-  u_char hsn[MAXREG+1];
+  uint8_t hsn[MAXREG+1];
   memset(hsn,10,sizeof(hsn));
   int j;
   lsn(hsn,i,&preferred_reg);
@@ -390,7 +390,7 @@ static void alloc_reg64(struct regstat *cur,int i,signed char reg)
 
   // Ok, now we have to evict someone
   // Pick a register we hopefully won't need soon
-  u_char hsn[MAXREG+1];
+  uint8_t hsn[MAXREG+1];
   memset(hsn,10,sizeof(hsn));
   int j;
   lsn(hsn,i,&preferred_reg);
@@ -528,7 +528,7 @@ static void alloc_reg_temp(struct regstat *cur,int i,signed char reg)
   // Pick a register we hopefully won't need soon
   // TODO: we might want to follow unconditional jumps here
   // TODO: get rid of dupe code and make this into a function
-  u_char hsn[MAXREG+1];
+  uint8_t hsn[MAXREG+1];
   memset(hsn,10,sizeof(hsn));
   int j;
   lsn(hsn,i,&preferred_reg);
@@ -701,36 +701,36 @@ static const char regname[16][4] = {
  "r14",
  "r15"};
 
-static void output_byte(u_char byte)
+static void output_byte(uint8_t byte)
 {
   *(out++)=byte;
 }
-static void output_modrm(u_char mod,u_char rm,u_char ext)
+static void output_modrm(uint8_t mod,uint8_t rm,uint8_t ext)
 {
   assert(mod<4);
   assert(rm<8);
   assert(ext<8);
-  u_char byte=(mod<<6)|(ext<<3)|rm;
+  uint8_t byte=(mod<<6)|(ext<<3)|rm;
   *(out++)=byte;
 }
-static void output_sib(u_char scale,u_char index,u_char base)
+static void output_sib(uint8_t scale,uint8_t index,uint8_t base)
 {
   assert(scale<4);
   assert(index<8);
   assert(base<8);
-  u_char byte=(scale<<6)|(index<<3)|base;
+  uint8_t byte=(scale<<6)|(index<<3)|base;
   *(out++)=byte;
 }
-static void output_rex(u_char w,u_char r,u_char x,u_char b)
+static void output_rex(uint8_t w,uint8_t r,uint8_t x,uint8_t b)
 {
   assert(w<2);
   assert(r<2);
   assert(x<2);
   assert(b<2);
-  u_char byte=0x40|(w<<3)|(r<<2)|(x<<1)|b;
+  uint8_t byte=0x40|(w<<3)|(r<<2)|(x<<1)|b;
   *(out++)=byte;
 }
-static void output_w32(u_int word)
+static void output_w32(uint32_t word)
 {
   *(out++) = (word >> 0) & 0xFF;
   *(out++) = (word >> 8) & 0xFF;
@@ -989,7 +989,7 @@ static void emit_not(int rs,int rt)
   output_modrm(3,rt,2);
 }
 
-static void emit_and(u_int rs1,u_int rs2,u_int rt)
+static void emit_and(uint32_t rs1,uint32_t rs2,uint32_t rt)
 {
   assert(rs1<8);
   assert(rs2<8);
@@ -1011,7 +1011,7 @@ static void emit_and(u_int rs1,u_int rs2,u_int rt)
   }
 }
 
-static void emit_or(u_int rs1,u_int rs2,u_int rt)
+static void emit_or(uint32_t rs1,uint32_t rs2,uint32_t rt)
 {
   assert(rs1<8);
   assert(rs2<8);
@@ -1037,7 +1037,7 @@ static void emit_or_and_set_flags(int rs1,int rs2,int rt)
   emit_or(rs1,rs2,rt);
 }
 
-static void emit_xor(u_int rs1,u_int rs2,u_int rt)
+static void emit_xor(uint32_t rs1,uint32_t rs2,uint32_t rt)
 {
   assert(rs1<8);
   assert(rs2<8);
@@ -1059,7 +1059,7 @@ static void emit_xor(u_int rs1,u_int rs2,u_int rt)
   }
 }
 
-static void emit_movimm(int imm,u_int rt)
+static void emit_movimm(int imm,uint32_t rt)
 {
   assem_debug("mov $%d,%%%s",imm,regname[rt]);
   assert(rt<16);
@@ -1068,7 +1068,7 @@ static void emit_movimm(int imm,u_int rt)
   output_w32(imm);
 }
 
-static void emit_movimm64(int64_t imm,u_int rt)
+static void emit_movimm64(int64_t imm,uint32_t rt)
 {
   assem_debug("mov $%lld,%%%s",imm,regname[rt]);
   assert(rt<16);
@@ -1180,7 +1180,7 @@ static void emit_addimm_no_flags(int imm,int rt)
   }
 }
 
-static void emit_adcimm(int imm,u_int rt)
+static void emit_adcimm(int imm,uint32_t rt)
 {
   assem_debug("adc $%d,%%%s",imm,regname[rt]);
   assert(rt<8);
@@ -1196,7 +1196,7 @@ static void emit_adcimm(int imm,u_int rt)
     output_w32(imm);
   }
 }
-static void emit_sbbimm(int imm,u_int rt)
+static void emit_sbbimm(int imm,uint32_t rt)
 {
   assem_debug("sbb $%d,%%%s",imm,regname[rt]);
   assert(rt<8);
@@ -1351,7 +1351,7 @@ static void emit_xorimm(int rs,int imm,int rt)
   }
 }
 
-static void emit_shlimm(int rs,u_int imm,int rt)
+static void emit_shlimm(int rs,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("shl %%%s,%d",regname[rt],imm);
@@ -1367,7 +1367,7 @@ static void emit_shlimm(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_shlimm64(int rs,u_int imm,int rt)
+static void emit_shlimm64(int rs,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("shl %%%s,%d",regname[rt],imm);
@@ -1384,7 +1384,7 @@ static void emit_shlimm64(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_shrimm(int rs,u_int imm,int rt)
+static void emit_shrimm(int rs,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("shr %%%s,%d",regname[rt],imm);
@@ -1400,7 +1400,7 @@ static void emit_shrimm(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_shrimm64(int rs,u_int imm,int rt)
+static void emit_shrimm64(int rs,uint32_t imm,int rt)
 {
   assert(rs==rt);
   if(rs==rt) {
@@ -1418,7 +1418,7 @@ static void emit_shrimm64(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_sarimm(int rs,u_int imm,int rt)
+static void emit_sarimm(int rs,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("sar %%%s,%d",regname[rt],imm);
@@ -1435,7 +1435,7 @@ static void emit_sarimm(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_rorimm(int rs,u_int imm,int rt)
+static void emit_rorimm(int rs,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("ror %%%s,%d",regname[rt],imm);
@@ -1451,7 +1451,7 @@ static void emit_rorimm(int rs,u_int imm,int rt)
   }
 }
 
-static void emit_shldimm(int rs,int rs2,u_int imm,int rt)
+static void emit_shldimm(int rs,int rs2,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("shld %%%s,%%%s,%d",regname[rt],regname[rs2],imm);
@@ -1467,7 +1467,7 @@ static void emit_shldimm(int rs,int rs2,u_int imm,int rt)
   }
 }
 
-static void emit_shrdimm(int rs,int rs2,u_int imm,int rt)
+static void emit_shrdimm(int rs,int rs2,uint32_t imm,int rt)
 {
   if(rs==rt) {
     assem_debug("shrd %%%s,%%%s,%d",regname[rt],regname[rs2],imm);
@@ -1533,7 +1533,7 @@ static void emit_cmpimm(int rs,int imm)
   }
 }
 
-static void emit_cmovne(const u_int *addr,int rt)
+static void emit_cmovne(const uint32_t *addr,int rt)
 {
   assert((intptr_t)addr-(intptr_t)out>=-2147483648LL&&(intptr_t)addr-(intptr_t)out<2147483647LL);
   assem_debug("cmovne %llx,%%%s",(intptr_t)addr,regname[rt]);
@@ -1545,7 +1545,7 @@ static void emit_cmovne(const u_int *addr,int rt)
   output_modrm(0,5,rt);
   output_w32((intptr_t)addr-(intptr_t)out-4); // Note: rip-relative in 64-bit mode
 }
-static void emit_cmovl(const u_int *addr,int rt)
+static void emit_cmovl(const uint32_t *addr,int rt)
 {
   assert((intptr_t)addr-(intptr_t)out>=-2147483648LL&&(intptr_t)addr-(intptr_t)out<2147483647LL);
   assem_debug("cmovl %llx,%%%s",(intptr_t)addr,regname[rt]);
@@ -1557,7 +1557,7 @@ static void emit_cmovl(const u_int *addr,int rt)
   output_modrm(0,5,rt);
   output_w32((intptr_t)addr-(intptr_t)out-4); // Note: rip-relative in 64-bit mode
 }
-static void emit_cmovs(const u_int *addr,int rt)
+static void emit_cmovs(const uint32_t *addr,int rt)
 {
   assert((intptr_t)addr-(intptr_t)out>=-2147483648LL&&(intptr_t)addr-(intptr_t)out<2147483647LL);
   assem_debug("cmovs %llx,%%%s",(intptr_t)addr,regname[rt]);
@@ -1861,35 +1861,35 @@ static void emit_pushimm(int imm)
   output_byte(0x68);
   output_w32(imm);
 }
-static void emit_pushreg(u_int r)
+static void emit_pushreg(uint32_t r)
 {
   assem_debug("push %%%s",regname[r]);
   if(r>=8)
     output_rex(0,0,0,r>>3);
   output_byte(0x50+(r&7));
 }
-static void emit_popreg(u_int r)
+static void emit_popreg(uint32_t r)
 {
   assem_debug("pop %%%s",regname[r]);
   if(r>=8)
     output_rex(0,0,0,r>>3);
   output_byte(0x58+(r&7));
 }
-static void emit_callreg(u_int r)
+static void emit_callreg(uint32_t r)
 {
   assem_debug("call *%%%s",regname[r]);
   assert(r<8);
   output_byte(0xFF);
   output_modrm(3,r,2);
 }
-static void emit_jmpreg(u_int r)
+static void emit_jmpreg(uint32_t r)
 {
   assem_debug("jmp *%%%s",regname[r]);
   assert(r<8);
   output_byte(0xFF);
   output_modrm(3,r,4);
 }
-static void emit_jmpmem_indexed(u_int addr,u_int r)
+static void emit_jmpmem_indexed(uint32_t addr,uint32_t r)
 {
   assem_debug("jmp *%x(%%%s)",addr,regname[r]);
   assert(r<8);
@@ -2562,7 +2562,7 @@ static void emit_cdq(void)
 }
 
 // Load 2 immediates optimizing for small code size
-static void emit_mov2imm_compact(int imm1,u_int rt1,int imm2,u_int rt2)
+static void emit_mov2imm_compact(int imm1,uint32_t rt1,int imm2,uint32_t rt2)
 {
   emit_movimm(imm1,rt1);
   if(imm2-imm1<128&&imm2-imm1>=-128) emit_addimm(rt1,imm2-imm1,rt2);
@@ -2689,7 +2689,7 @@ static void emit_fldl(int r)
   if(r!=EBP) output_modrm(0,r,0);
   else {output_modrm(1,EBP,0);output_byte(0);}
 }
-static void emit_fucomip(u_int r)
+static void emit_fucomip(uint32_t r)
 {
   assem_debug("fucomip %d",r);
   assert(r<8);
@@ -2883,7 +2883,7 @@ static void emit_fldcw(intptr_t addr)
   output_modrm(0,5,5);
   output_w32(addr-(intptr_t)out-4); // Note: rip-relative in 64-bit mode
 }
-static void emit_movss_load(u_int addr,u_int ssereg)
+static void emit_movss_load(uint32_t addr,uint32_t ssereg)
 {
   assem_debug("movss (%%%s),xmm%d",regname[addr],ssereg);
   assert(ssereg<8);
@@ -2893,7 +2893,7 @@ static void emit_movss_load(u_int addr,u_int ssereg)
   if(addr!=EBP) output_modrm(0,addr,ssereg);
   else {output_modrm(1,EBP,ssereg);output_byte(0);}
 }
-static void emit_movsd_load(u_int addr,u_int ssereg)
+static void emit_movsd_load(uint32_t addr,uint32_t ssereg)
 {
   assem_debug("movsd (%%%s),xmm%d",regname[addr],ssereg);
   assert(ssereg<8);
@@ -2903,7 +2903,7 @@ static void emit_movsd_load(u_int addr,u_int ssereg)
   if(addr!=EBP) output_modrm(0,addr,ssereg);
   else {output_modrm(1,EBP,ssereg);output_byte(0);}
 }
-static void emit_movd_store(u_int ssereg,u_int addr)
+static void emit_movd_store(uint32_t ssereg,uint32_t addr)
 {
   assem_debug("movd xmm%d,(%%%s)",ssereg,regname[addr]);
   assert(ssereg<8);
@@ -2913,7 +2913,7 @@ static void emit_movd_store(u_int ssereg,u_int addr)
   if(addr!=EBP) output_modrm(0,addr,ssereg);
   else {output_modrm(1,EBP,ssereg);output_byte(0);}
 }
-static void emit_cvttps2dq(u_int ssereg1,u_int ssereg2)
+static void emit_cvttps2dq(uint32_t ssereg1,uint32_t ssereg2)
 {
   assem_debug("cvttps2dq xmm%d,xmm%d",ssereg1,ssereg2);
   assert(ssereg1<8);
@@ -2923,7 +2923,7 @@ static void emit_cvttps2dq(u_int ssereg1,u_int ssereg2)
   output_byte(0x5b);
   output_modrm(3,ssereg1,ssereg2);
 }
-static void emit_cvttpd2dq(u_int ssereg1,u_int ssereg2)
+static void emit_cvttpd2dq(uint32_t ssereg1,uint32_t ssereg2)
 {
   assem_debug("cvttpd2dq xmm%d,xmm%d",ssereg1,ssereg2);
   assert(ssereg1<8);
@@ -2934,7 +2934,7 @@ static void emit_cvttpd2dq(u_int ssereg1,u_int ssereg2)
   output_modrm(3,ssereg1,ssereg2);
 }
 
-static unsigned int count_bits(u_int reglist)
+static unsigned int count_bits(uint32_t reglist)
 {
   int count=0;
   while(reglist)
@@ -2949,7 +2949,7 @@ static unsigned int count_bits(u_int reglist)
 // This code is executed infrequently so we try to minimize code size
 // by pushing registers onto the stack instead of writing them to their
 // usual locations
-static void save_regs(u_int reglist)
+static void save_regs(uint32_t reglist)
 {
   int hr;
   reglist&=~(1<<ESP);
@@ -2967,7 +2967,7 @@ static void save_regs(u_int reglist)
   emit_addimm64(ESP,-(16-count)*8,ESP);
 }
 // Restore registers after function call
-static void restore_regs(u_int reglist)
+static void restore_regs(uint32_t reglist)
 {
   int hr;
   reglist&=~(1<<ESP);
@@ -2985,13 +2985,13 @@ static void restore_regs(u_int reglist)
   }
 }
 
-static void save_caller_regs(u_int reglist)
+static void save_caller_regs(uint32_t reglist)
 {
   reglist&=CALLER_SAVED_REGS; // only save the caller-save registers
   save_regs(reglist);
 }
 
-static void restore_caller_regs(u_int reglist)
+static void restore_caller_regs(uint32_t reglist)
 {
   reglist&=CALLER_SAVED_REGS; // only restore the caller-save registers
   restore_regs(reglist);
@@ -3001,7 +3001,7 @@ static void restore_caller_regs(u_int reglist)
 
 static void emit_extjump2(intptr_t addr, int target, intptr_t linker)
 {
-  u_char *ptr=(u_char *)addr;
+  uint8_t *ptr=(uint8_t *)addr;
   if(*ptr==0x0f)
   {
     assert(ptr[1]>=0x80&&ptr[1]<=0x8f);
@@ -3036,7 +3036,7 @@ static void do_readstub(int n)
   int i=stubs[n][3];
   int addr=stubs[n][4];
   struct regstat *i_regs=(struct regstat *)stubs[n][5];
-  u_int reglist=stubs[n][7];
+  uint32_t reglist=stubs[n][7];
   signed char *i_regmap=i_regs->regmap;
   int rth,rt;
   if(itype[i]==C1LS||itype[i]==LOADLR) {
@@ -3106,7 +3106,7 @@ static void do_readstub(int n)
   emit_jmp(stubs[n][2]); // return address
 }
 
-static void inline_readstub(int type, int i, u_int addr, signed char regmap[], int target, int adj, u_int reglist)
+static void inline_readstub(int type, int i, uint32_t addr, signed char regmap[], int target, int adj, uint32_t reglist)
 {
   assem_debug("inline_readstub");
   int rth=get_reg(regmap,target|64);
@@ -3188,7 +3188,7 @@ static void do_writestub(int n)
   int i=stubs[n][3];
   int addr=stubs[n][4];
   struct regstat *i_regs=(struct regstat *)stubs[n][5];
-  u_int reglist=stubs[n][7];
+  uint32_t reglist=stubs[n][7];
   signed char *i_regmap=i_regs->regmap;
   int rth,rt,r;
 
@@ -3255,7 +3255,7 @@ static void do_writestub(int n)
   emit_jmp(stubs[n][2]); // return address
 }
 
-static void inline_writestub(int type, int i, u_int addr, signed char regmap[], int target, int adj, u_int reglist)
+static void inline_writestub(int type, int i, uint32_t addr, signed char regmap[], int target, int adj, uint32_t reglist)
 {
   assem_debug("inline_writestub");
   int rth=get_reg(regmap,target|64);
@@ -3334,7 +3334,7 @@ static void do_unalignedwritestub(int n)
 
 static void do_invstub(int n)
 {
-  u_int reglist=stubs[n][3];
+  uint32_t reglist=stubs[n][3];
   set_jump_target(stubs[n][1],(intptr_t)out);
   save_caller_regs(reglist);
   emit_call((intptr_t)invalidate_block_reg[stubs[n][4]]);
@@ -3382,7 +3382,7 @@ static void do_cop1stub(int n)
 
 /* TLB */
 
-static int do_tlb_r(int s,int ar,int map,int cache,int x,int a,int shift,int c,u_int addr)
+static int do_tlb_r(int s,int ar,int map,int cache,int x,int a,int shift,int c,uint32_t addr)
 {
   if(c) {
     // Stores to memory go thru the mapper to detect self-modifying
@@ -3416,7 +3416,7 @@ static int do_tlb_r(int s,int ar,int map,int cache,int x,int a,int shift,int c,u
   }
   return map;
 }
-static int do_tlb_r_branch(int map, int c, u_int addr, intptr_t *jaddr)
+static int do_tlb_r_branch(int map, int c, uint32_t addr, intptr_t *jaddr)
 {
   if(!c||(signed int)addr>=(signed int)0xC0000000) {
     emit_test64(map,map);
@@ -3426,7 +3426,7 @@ static int do_tlb_r_branch(int map, int c, u_int addr, intptr_t *jaddr)
   }
   return map;
 }
-static int do_tlb_r_branch_debug(int map, int c, u_int addr, intptr_t *jaddr)
+static int do_tlb_r_branch_debug(int map, int c, uint32_t addr, intptr_t *jaddr)
 {
   if(!c) {
     emit_test64(map,map);
@@ -3437,7 +3437,7 @@ static int do_tlb_r_branch_debug(int map, int c, u_int addr, intptr_t *jaddr)
   return map;
 }
 
-static int do_tlb_w(int s,int ar,int map,int cache,int x,int c,u_int addr)
+static int do_tlb_w(int s,int ar,int map,int cache,int x,int c,uint32_t addr)
 {
   if(c) {
     if(addr<0x80800000||addr>=0xC0000000) {
@@ -3461,14 +3461,14 @@ static int do_tlb_w(int s,int ar,int map,int cache,int x,int c,u_int addr)
   emit_shlimm64(map,2,map);
   return map;
 }
-static void do_tlb_w_branch(int map, int c, u_int addr, intptr_t *jaddr)
+static void do_tlb_w_branch(int map, int c, uint32_t addr, intptr_t *jaddr)
 {
   if(!c||addr<0x80800000||addr>=0xC0000000) {
     *jaddr=(intptr_t)out;
     emit_jc(0);
   }
 }
-static void do_tlb_w_branch_debug(int map, int c, u_int addr, intptr_t *jaddr)
+static void do_tlb_w_branch_debug(int map, int c, uint32_t addr, intptr_t *jaddr)
 {
   if(!c) {
     *jaddr=(intptr_t)out;
@@ -3477,7 +3477,7 @@ static void do_tlb_w_branch_debug(int map, int c, u_int addr, intptr_t *jaddr)
 }
 
 // We don't need this for x64
-static void generate_map_const(u_int addr,int reg) {
+static void generate_map_const(uint32_t addr,int reg) {
   // void *mapaddr=g_dev.r4300.new_dynarec_hot_state.memory_map+(addr>>12);
 }
 
@@ -3663,7 +3663,7 @@ static void loadlr_assemble_x64(int i,struct regstat *i_regs)
   int offset;
   intptr_t jaddr=0;
   int memtarget=0,c=0;
-  u_int hr,reglist=0;
+  uint32_t hr,reglist=0;
   th=get_reg(i_regs->regmap,rt1[i]|64);
   tl=get_reg(i_regs->regmap,rt1[i]);
   s=get_reg(i_regs->regmap,rs1[i]);
@@ -3819,7 +3819,7 @@ static void loadlr_assemble_x64(int i,struct regstat *i_regs)
 
 static void cop0_assemble(int i,struct regstat *i_regs)
 {
-  u_int hr,reglist=0;
+  uint32_t hr,reglist=0;
   for(hr=0;hr<HOST_REGS;hr++) {
     if(i_regs->regmap[hr]>=0) reglist|=1<<hr;
   }
@@ -3998,7 +3998,7 @@ static void cop1_assemble(int i,struct regstat *i_regs)
   {
     signed char tl=get_reg(i_regs->regmap,rt1[i]);
     if(tl>=0) {
-      u_int copr=(source[i]>>11)&0x1f;
+      uint32_t copr=(source[i]>>11)&0x1f;
       if(copr==0) emit_readword((intptr_t)&g_dev.r4300.new_dynarec_hot_state.fcr0,tl);
       if(copr==31) emit_readword((intptr_t)&g_dev.r4300.new_dynarec_hot_state.fcr31,tl);
     }
@@ -4006,7 +4006,7 @@ static void cop1_assemble(int i,struct regstat *i_regs)
   else if (opcode2[i]==6) // CTC1
   {
     signed char sl=get_reg(i_regs->regmap,rs1[i]);
-    u_int copr=(source[i]>>11)&0x1f;
+    uint32_t copr=(source[i]>>11)&0x1f;
     assert(sl>=0);
     if(copr==31)
     {
@@ -4131,7 +4131,7 @@ static void fconv_assemble_x64(int i,struct regstat *i_regs)
 
   // C emulation code
 
-  u_int hr,reglist=0;
+  uint32_t hr,reglist=0;
   for(hr=0;hr<HOST_REGS;hr++) {
     if(i_regs->regmap[hr]>=0) reglist|=1<<hr;
   }
@@ -4365,7 +4365,7 @@ static void fcomp_assemble(int i,struct regstat *i_regs)
 
   // C only
 
-  u_int hr,reglist=0;
+  uint32_t hr,reglist=0;
   for(hr=0;hr<HOST_REGS;hr++) {
     if(i_regs->regmap[hr]>=0) reglist|=1<<hr;
   }
@@ -4528,7 +4528,7 @@ static void float_assemble(int i,struct regstat *i_regs)
     return;
   }
 
-  u_int hr,reglist=0;
+  uint32_t hr,reglist=0;
   for(hr=0;hr<HOST_REGS;hr++) {
     if(i_regs->regmap[hr]>=0) reglist|=1<<hr;
   }
@@ -4660,7 +4660,7 @@ static void multdiv_assemble_x64(int i,struct regstat *i_regs)
     }
     else // 64-bit
     {
-      u_int reglist=0;
+      uint32_t reglist=0;
       char r1h=get_reg(i_regs->regmap,rs1[i]|64);
       char r1l=get_reg(i_regs->regmap,rs1[i]);
       char r2h=get_reg(i_regs->regmap,rs2[i]|64);
@@ -4777,7 +4777,7 @@ static void wb_sx(signed char pre[],signed char entry[],uint64_t dirty,uint64_t 
   }
 }
 
-static void wb_valid(signed char pre[],signed char entry[],u_int dirty_pre,u_int dirty,uint64_t is32_pre,uint64_t u,uint64_t uu)
+static void wb_valid(signed char pre[],signed char entry[],uint32_t dirty_pre,uint32_t dirty,uint64_t is32_pre,uint64_t u,uint64_t uu)
 {
   //if(dirty_pre==dirty) return;
   int hr,reg;

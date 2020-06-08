@@ -135,8 +135,33 @@ void run_r4300(struct r4300_core* r4300)
         r4300->emumode = EMUMODE_PURE_INTERPRETER;
         run_pure_interpreter(r4300);
     }
+    else if (r4300->emumode == EMUMODE_INTERPRETER)
+    {
+        DebugMessage(M64MSG_INFO, "Starting R4300 emulator: Cached Interpreter");
+        r4300->emumode = EMUMODE_INTERPRETER;
+        r4300->cached_interp.fin_block = cached_interp_FIN_BLOCK;
+        r4300->cached_interp.not_compiled = cached_interp_NOTCOMPILED;
+        r4300->cached_interp.not_compiled2 = cached_interp_NOTCOMPILED2;
+        r4300->cached_interp.init_block = cached_interp_init_block;
+        r4300->cached_interp.free_block = cached_interp_free_block;
+        r4300->cached_interp.recompile_block = cached_interp_recompile_block;
+
+        init_blocks(&r4300->cached_interp);
+        cached_interpreter_jump_to(r4300, UINT32_C(0xa4000040));
+
+        /* Prevent segfault on failed cached_interpreter_jump_to */
+        if (!r4300->cached_interp.actual->block) {
+            return;
+        }
+
+        r4300->cp0.last_addr = *r4300_pc(r4300);
+
+        run_cached_interpreter(r4300);
+
+        free_blocks(&r4300->cached_interp);
+    }
 #if defined(DYNAREC)
-    else if (r4300->emumode >= EMUMODE_DYNAREC)
+    else /* if (r4300->emumode == EMUMODE_DYNAREC) */
     {
         DebugMessage(M64MSG_INFO, "Starting R4300 emulator: Dynamic Recompiler");
         r4300->emumode = EMUMODE_DYNAREC;
@@ -163,31 +188,6 @@ void run_r4300(struct r4300_core* r4300)
         free_blocks(&r4300->cached_interp);
     }
 #endif
-    else /* if (r4300->emumode == EMUMODE_INTERPRETER) */
-    {
-        DebugMessage(M64MSG_INFO, "Starting R4300 emulator: Cached Interpreter");
-        r4300->emumode = EMUMODE_INTERPRETER;
-        r4300->cached_interp.fin_block = cached_interp_FIN_BLOCK;
-        r4300->cached_interp.not_compiled = cached_interp_NOTCOMPILED;
-        r4300->cached_interp.not_compiled2 = cached_interp_NOTCOMPILED2;
-        r4300->cached_interp.init_block = cached_interp_init_block;
-        r4300->cached_interp.free_block = cached_interp_free_block;
-        r4300->cached_interp.recompile_block = cached_interp_recompile_block;
-
-        init_blocks(&r4300->cached_interp);
-        cached_interpreter_jump_to(r4300, UINT32_C(0xa4000040));
-
-        /* Prevent segfault on failed cached_interpreter_jump_to */
-        if (!r4300->cached_interp.actual->block) {
-            return;
-        }
-
-        r4300->cp0.last_addr = *r4300_pc(r4300);
-
-        run_cached_interpreter(r4300);
-
-        free_blocks(&r4300->cached_interp);
-    }
 
     DebugMessage(M64MSG_INFO, "R4300 emulator finished.");
 

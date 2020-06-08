@@ -877,8 +877,6 @@ static void update_variables(void)
         else
             r4300_emumode = EMUMODE_DYNAREC;
     }
-    else
-        r4300_emumode = EMUMODE_DYNAREC;
 
     var.key = CORE_NAME "-aspect";
     var.value = NULL;

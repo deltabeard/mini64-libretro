@@ -1,4 +1,9 @@
+# Enables debug flags and asserts
 DEBUG := 0
+
+# Which version of OpenGL to support
+# GL, GLES2, GLES3
+USE_GL :=
 USE_GLES ?= 0
 USE_GLES3 ?= 0
 NODHQ ?= 0
@@ -32,8 +37,10 @@ USE_GLRPI := $(IS_LIB_AVAIL)
 
 # Prioritise OpenGL before OpenGLES if both are available.
 ifeq ($(USE_GL32),1)
-	GL_LIB := -lopengl32
-	platform ?= win
+	# Set to OpenGL, but link to Windows specific library
+	USE_GL := GL
+	LDLIBS := -lopengl32
+	platform := win
 else ifeq ($(USE_GL),1)
 	GL_LIB := -lGL
 else ifeq ($(USE_GLES),1)

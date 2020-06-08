@@ -22,6 +22,8 @@
 
 /* gameshark and xploder64 reference: http://doc.kodewerx.net/hacking_n64.html */
 
+/* strdup */
+#define _POSIX_C_SOURCE 200809L
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -208,7 +210,7 @@ void cheat_apply_cheats(struct cheat_ctx* ctx, struct r4300_core* r4300, int ent
     cheat_t *cheat;
     cheat_code_t *code;
     int cond_failed;
-    
+
     if (list_empty(&ctx->active_cheats))
         return;
 
