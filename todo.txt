@@ -10,7 +10,7 @@ Remove minizip.
 	entries.
 
 Replace ZLIB with tinf
-Replace libpng with something not gigantic
+Replace libpng with lodepng decoding.
 Add texture pack as a subsystem option
 Display message when texture pack loaded
 Fix AWK breaking when LTO enabled
