@@ -32,7 +32,6 @@
 
 #include "TxCache.h"
 #include "TxQuantize.h"
-#include "TxImage.h"
 #include "TxReSample.h"
 
 class TxHiResCache : public TxCache
@@ -43,7 +42,6 @@ private:
   int _maxbpp;
 	bool _abortLoad;
 	bool _cacheDumped;
-	std::unique_ptr<TxImage> _txImage;
 	std::unique_ptr<TxQuantize> _txQuantize;
 	std::unique_ptr<TxReSample> _txReSample;
   tx_wstring _texPackPath;

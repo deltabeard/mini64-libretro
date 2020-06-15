@@ -91,28 +91,28 @@ ifneq ($(filter $(USE_ARCH), arm),)
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/arm/arm_cpu_features.c
 	SOURCES_ASM += \
-		$(CORE_DIR)/src/device/r4300/new_dynarec/arm/linkage_arm.S
+		$(CORE_DIR)/src/device/r4300/new_dynarec/$(USE_DYNAREC)/linkage_$(USE_DYNAREC).S
 else ifneq ($(filter $(USE_ARCH), aarch64),)
 	DYNAREC_USED = 1
 	CFLAGS += -DNEW_DYNAREC=4
 	SOURCES_C += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c
 	SOURCES_ASM += \
-		$(CORE_DIR)/src/device/r4300/new_dynarec/arm64/linkage_arm64.S
+		$(CORE_DIR)/src/device/r4300/new_dynarec/$(USE_DYNAREC)/linkage_$(USE_DYNAREC).S
 else ifneq ($(filter $(USE_ARCH), i386 i686),)
 	CFLAGS += -DARCH_MIN_SSE2 -msse -msse2 -DNEW_DYNAREC=1
 	DYNAREC_USED = 1
 	SOURCES_C += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c
 	SOURCES_NASM += \
-		$(CORE_DIR)/src/device/r4300/new_dynarec/x86/linkage_x86.asm
+		$(CORE_DIR)/src/device/r4300/new_dynarec/$(USE_DYNAREC)/linkage_$(USE_DYNAREC).asm
 else ifneq ($(filter $(USE_ARCH), x86_64 x64),)
 	CFLAGS += -DARCH_MIN_SSE2 -msse -msse2 -DNEW_DYNAREC=2
 	DYNAREC_USED = 1
 	SOURCES_C += \
 		$(CORE_DIR)/src/device/r4300/new_dynarec/new_dynarec.c
 	SOURCES_NASM += \
-		$(CORE_DIR)/src/device/r4300/new_dynarec/x64/linkage_x64.asm
+		$(CORE_DIR)/src/device/r4300/new_dynarec/$(USE_DYNAREC)/linkage_$(USE_DYNAREC).asm
 endif
 
 ifeq ($(DYNAREC_USED),1)
@@ -265,7 +265,6 @@ ifeq ($(USE_HQTEX),1)
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxFilter.cpp \
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxFilterExport.cpp \
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxHiResCache.cpp \
-                     $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxImage.cpp \
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxQuantize.cpp \
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxReSample.cpp \
                      $(VIDEODIR_GLIDEN64)/src/GLideNHQ/TxTexCache.cpp \

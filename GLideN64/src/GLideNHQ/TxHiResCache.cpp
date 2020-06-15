@@ -62,7 +62,6 @@ TxHiResCache::TxHiResCache(int maxwidth,
 	, _maxbpp(maxbpp)
 	, _abortLoad(false)
 	, _cacheDumped(false)
-	, _txImage(new TxImage())
 	, _txQuantize(new TxQuantize())
 	  , _txReSample(new TxReSample())
 {

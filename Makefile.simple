@@ -87,16 +87,14 @@ ifeq ($(platform), unix)
 endif
 
 # Target Dynarec
-USE_DYNAREC := $(ARCH)
-
-ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
-	USE_DYNAREC = x86
-else ifeq ($(ARCH), $(filter $(WITH_DYNAREC), x86_64 x64))
-	USE_DYNAREC = x86_64
-else ifeq ($(ARCH), $(filter $(ARCH), arm))
-	USE_DYNAREC = arm
-else ifeq ($(ARCH), $(filter $(ARCH), aarch64))
-	USE_DYNAREC = aarch64
+ifeq ($(USE_ARCH), $(filter $(USE_ARCH), i386 i686))
+	USE_DYNAREC := x86
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), x86_64 x64))
+	USE_DYNAREC := x64
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), arm))
+	USE_DYNAREC := arm
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), aarch64))
+	USE_DYNAREC := arm64
 endif
 
 include Makefile.common
@@ -126,8 +124,14 @@ else
 	OPT := -O3
 endif
 
+ifneq ("$(wildcard $(SOURCES_NASM:.asm=.o))","")
+    CFLAGS += -flto
+else
+    $(warning LTO is disabled on clean build.)
+endif
+
 LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -lz
-CFLAGS += -DOS_LINUX -fPIC -flto -g2 $(OPT)
+CFLAGS += -DOS_LINUX -fPIC -g2 $(OPT)
 
 OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
 CXXFLAGS := $(CFLAGS)

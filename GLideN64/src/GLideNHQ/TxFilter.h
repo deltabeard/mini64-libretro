@@ -29,7 +29,6 @@
 #include "TxHiResCache.h"
 #include "TxTexCache.h"
 #include "TxUtil.h"
-#include "TxImage.h"
 
 class TxFilter
 {
@@ -47,7 +46,6 @@ private:
   TxQuantize *_txQuantize;
   TxTexCache *_txTexCache;
   TxHiResCache *_txHiResCache;
-  TxImage *_txImage;
   boolean _initialized;
   void clear();
 public:

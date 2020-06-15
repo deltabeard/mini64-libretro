@@ -47,7 +47,6 @@ void TxFilter::clear()
 	TxMemBuf::getInstance()->shutdown();
 
 	/* clear other stuff */
-	delete _txImage;
 	delete _txQuantize;
 }
 
@@ -69,7 +68,6 @@ TxFilter::TxFilter(int maxwidth,
 	, _txQuantize(nullptr)
 	, _txTexCache(nullptr)
 	, _txHiResCache(nullptr)
-	, _txImage(nullptr)
 {
 	/* FIXME: HACKALERT: the emulator misbehaves and sometimes forgets to shutdown */
 	if ((ident && wcscmp(ident, wst("DEFAULT")) != 0 && _ident.compare(ident) == 0) &&
@@ -101,7 +99,6 @@ TxFilter::TxFilter(int maxwidth,
 
 	_options = options;
 
-	_txImage      = new TxImage();
 	_txQuantize   = new TxQuantize();
 
 	/* get number of CPU cores. */
