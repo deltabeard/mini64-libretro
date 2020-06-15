@@ -126,7 +126,7 @@ else
 	OPT := -O3
 endif
 
-LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
+LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -lz
 CFLAGS += -DOS_LINUX -fPIC -flto -g2 $(OPT)
 
 OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)

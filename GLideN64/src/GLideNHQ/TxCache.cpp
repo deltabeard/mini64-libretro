@@ -25,12 +25,12 @@
 #pragma warning(disable: 4786)
 #endif
 
+#include <assert.h>
 #include <fstream>
-#include <unordered_map>
-#include <zlib.h>
 #include <memory.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <unordered_map>
+#include <zlib.h>
 
 #include "TxCache.h"
 #include "TxDbg.h"
