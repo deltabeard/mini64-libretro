@@ -163,6 +163,14 @@ $(AWK_DEST_DIR)/asm_defines_nasm.h: $(ASM_DEFINES_OBJ)
 %.o: %.S $(AWK_DEST_DIR)/asm_defines_gas.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+%.o: %.c
+	@echo "CC $@"
+	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+
+%.o: %.cpp
+	@echo "CXX $@"
+	@$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+
 clean:
 	$(RM) $(OBJECTS)
 	$(RM) $(OBJECTS:.o=.gcda)
