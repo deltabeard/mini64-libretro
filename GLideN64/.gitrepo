@@ -4,8 +4,9 @@
 ; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
 ;
 [subrepo]
-	remote = ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/GLideN64
+	remote = git@github.com:deltabeard/GLideN64.git
 	branch = develop
-	commit = dc2e13d8cc61720cb2cbd1d30da29d2cb9903536
-	parent = 0e6fdcf98b0f8ca50e942f3972c5814b86145be7
-	cmdver = 0.1.0
+	commit = dc65d3a9f29010ea699035c58e39e97300bd4666
+	parent = c0c4ca85725d16aa6941704b513bc43f07efbc5e
+	cmdver = 0.4.1
+	method = merge
