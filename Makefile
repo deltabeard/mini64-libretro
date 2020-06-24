@@ -3,20 +3,26 @@ DEBUG := 0
 
 # Which version of OpenGL to support
 # GL, GLES2, GLES3
-USE_GL :=
-USE_GLES ?= 0
-USE_GLES3 ?= 0
-NODHQ ?= 0
+#USE_GL :=
 
-DYNAFLAGS :=
-INCFLAGS  :=
-COREFLAGS := -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ \
-	-DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT \
-	-DMUPENPLUSAPI
-CPUFLAGS  :=
-GLFLAGS   :=
-USE_LTO   ?= 0
-PIC       ?= 1
+# Enable high quality texture features with GLideNHQ
+USE_HQTEX := 1
+
+# Custom optimisations
+#OPT :=
+
+# Specify target architecture
+USE_ARCH := $(shell uname -m)
+
+.PHONY: clean
+
+TARGET_NAME := mini64
+TARGET := $(TARGET_NAME)_libretro.so
+
+ROOT_DIR := .
+LIBRETRO_DIR := $(ROOT_DIR)/libretro
+DEPSDIR	:=	$(CURDIR)/
+
 AWK       ?= awk
 STRINGS   ?= strings
 TR        ?= tr
@@ -26,448 +32,125 @@ TR        ?= tr
 IS_LIB_AVAIL = $(shell $(CC) -l$(CHECK_LIB) 2>&1 >/dev/null | grep "cannot find" > /dev/null; echo $$?)
 
 # Check for the availability of GL libs.
-CHECK_LIB := GL
-USE_GL    := $(IS_LIB_AVAIL)
-CHECK_LIB := GLESv2
-USE_GLES  := $(IS_LIB_AVAIL)
-CHECK_LIB := opengl32
-USE_GL32  := $(IS_LIB_AVAIL)
-CHECK_LIB := brcmGLESv2
-USE_GLRPI := $(IS_LIB_AVAIL)
+CHECK_LIB   := opengl32
+ifeq ($(IS_LIB_AVAIL),1)
+    USE_GL ?= GL
+    platform := win
+endif
+
+CHECK_LIB   := GL
+ifeq ($(IS_LIB_AVAIL),1)
+    USE_GL ?= GL
+endif
+
+CHECK_LIB   := GLESv2
+ifeq ($(IS_LIB_AVAIL),1)
+    USE_GL ?= GLES2
+endif
+
+CHECK_LIB   := brcmGLESv2
+ifeq ($(IS_LIB_AVAIL),1)
+    USE_GL ?= brcmGLES2
+endif
+
+ifeq ($(USE_GL),)
+    err := $(error A compatible version of OpenGL was not found)
+endif
 
 # Prioritise OpenGL before OpenGLES if both are available.
-ifeq ($(USE_GL32),1)
-	# Set to OpenGL, but link to Windows specific library
-	USE_GL := GL
-	LDLIBS := -lopengl32
-	platform := win
-else ifeq ($(USE_GL),1)
-	GL_LIB := -lGL
-else ifeq ($(USE_GLES),1)
-	GL_LIB := -lGLESv2
-	GLES = 1
-else ifeq ($(USE_GLRPI),1)
-	GL_LIB := -L/opt/vc/lib -lbrcmGLESv2
-	EGL_LIB := -lbrcmEGL
-	INCFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vcos -I/opt/vc/include/interface/vcos/pthreads
-	platform ?= rpi
-	#TODO: Change LDFLAGS to LDLIBS
-	LDFLAGS += -ldl
+ifeq ($(USE_GL),GL)
+    ifeq ($(platform),win)
+        # Set to OpenGL, but link to Windows specific library
+        LDLIBS += -lopengl32
+    else
+        LDLIBS += -lGL
+    endif
+else ifeq ($(USE_GL),GLES2)
+    LDLIBS += -lGLESv2 -lEGL
+else ifeq ($(USE_GL),brcmGLES2)
+    LDLIBS += -lbrcmGLESv2 -lbrcmEGL -ldl
+    CFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vcos \
+        -I/opt/vc/include/interface/vcos/pthreads
 else
-	err := $(error Either OpenGL or OpenGLES is required, but neither could be found)
+    err := $(error Either OpenGL or OpenGLES2 is required, but neither could be found)
 endif
 
-ifeq ($(NODHQ),1)
-	COREFLAGS += -DNODHQ
-endif
-
-# If rpi given as platform, attempt to automatically select CPUFLAGS
-ifeq ($(platform), rpi)
-   RPI_CPU := $(shell $(MAKE) -C ./tools get_rpi_cpu &> /dev/null; \
-      ./tools/get_rpi_cpu /proc/cpuinfo)
-   ifeq ($(RPI_CPU), BCM2835)
-      platform := rpi1
-   else ifeq ($(RPI_CPU), BCM2836)
-      platform := rpi2
-   else ifeq ($(RPI_CPU), BCM2837)
-      platform := rpi3
-   else ifeq ($(RPI_CPU), BCM2711)
-      platform := rpi4
-   else
-      $(error Please specify a specific version of the Raspberry Pi. Eg. make platform=rpi3)
-   endif
+ifneq ($(USE_HQTEX),1)
+    CFLAGS += -DNODHQ
 endif
 
 # Assume platform is unix if not set to win previously, or forced by user.
 platform ?= unix
 
-# Dirs
-ROOT_DIR := .
-LIBRETRO_DIR := $(ROOT_DIR)/libretro
-DEPSDIR	:=	$(CURDIR)/
-
-ARCH ?= $(shell uname -m)
-
-# Target Dynarec
-WITH_DYNAREC = $(ARCH)
-
-ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
-	WITH_DYNAREC = x86
-	PIC := 0
-else ifeq ($(ARCH), $(filter $(WITH_DYNAREC), x86_64 x64))
-	WITH_DYNAREC = x86_64
-else ifeq ($(ARCH), $(filter $(ARCH), arm))
-	WITH_DYNAREC = arm
-else ifeq ($(ARCH), $(filter $(ARCH), aarch64))
-	WITH_DYNAREC = aarch64
+ifeq ($(platform), unix)
+	LDLIBS += -lpthread
 endif
 
-TARGET_NAME := mini64
-CC_AS ?= $(CC)
+# Target Dynarec
+ifeq ($(USE_ARCH), $(filter $(USE_ARCH), i386 i686))
+	USE_DYNAREC := x86
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), x86_64 x64))
+	USE_DYNAREC := x64
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), arm))
+	USE_DYNAREC := arm
+else ifeq ($(USE_ARCH), $(filter $(USE_ARCH), aarch64))
+	USE_DYNAREC := arm64
+endif
 
-GIT_VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+include Makefile.common
+
+GIT_VERSION := $(shell git rev-parse --short HEAD 2>/dev/null)
 ifneq ($(GIT_VERSION),)
    COREFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
 
 ifeq ($(platform), win)
-   ifeq ($(ARCH), x86_64)
+   ifeq ($(USE_ARCH), x86_64)
       ASFLAGS := -f win64 -d WIN64
    else
       ASFLAGS := -f win32 -f WIN32 -d LEADING_UNDERSCORE
    endif
 else
-   ifeq ($(ARCH), x86_64)
+   ifeq ($(USE_ARCH), x86_64)
       ASFLAGS := -f elf64 -d ELF_TYPE
    else
       ASFLAGS := -f elf -d ELF_TYPE
    endif
 endif
 
-LDFLAGS := -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
-
-# Linux
-ifeq ($(platform), unix)
-   TARGET := $(TARGET_NAME)_libretro.so
-
-# TODO: Check if OS defines are required.
-   COREFLAGS += -DOS_LINUX
-
-# Raspberry Pi
-else ifneq (,$(findstring rpi,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   ifeq ($(platform), rpi1)
-	   CPUFLAGS += -march=armv6j -mfpu=vfp -mfloat-abi=hard
-   else ifeq ($(platform), rpi2)
-      CPUFLAGS += -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
-      HAVE_NEON = 1
-   else ifeq ($(platform), rpi3)
-      CPUFLAGS += -march=armv8-a+crc -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
-      HAVE_NEON = 1
-   else ifeq ($(platform), rpi4)
-      CPUFLAGS += -march=armv8-a+crc -mtune=cortex-a72 -mfpu=neon-fp-armv8 -mfloat-abi=hard
-      HAVE_NEON = 1
-   endif
-   COREFLAGS += -DOS_LINUX
-
-# Nintendo Switch
-else ifeq ($(platform), libnx)
-   include $(DEVKITPRO)/devkitA64/base_tools
-   PORTLIBS := $(PORTLIBS_PATH)/switch
-   PATH := $(PORTLIBS)/bin:$(PATH)
-   LIBNX ?= $(DEVKITPRO)/libnx
-   STRINGS := $(PREFIX)$(STRINGS)
-   EGL := 1
-   PIC = 1
-   TARGET := $(TARGET_NAME)_libretro_$(platform).a
-   CPUOPTS := -g -march=armv8-a+crc -mtune=cortex-a57 -mtp=soft -mcpu=cortex-a57+crc+fp+simd
-   PLATCFLAGS = -O3 -ffast-math -funsafe-math-optimizations -fPIE -I$(PORTLIBS)/include/ -I$(LIBNX)/include/ -ffunction-sections -fdata-sections -ftls-model=local-exec -specs=$(LIBNX)/switch.specs
-   PLATCFLAGS += $(INCLUDE) -D__SWITCH__=1 -DSWITCH -DHAVE_LIBNX -D_GLIBCXX_USE_C99_MATH_TR1 -D_LDBL_EQ_DBL -funroll-loops
-   CXXFLAGS += -fno-rtti -std=gnu++11
-   COREFLAGS += -DOS_LINUX -DEGL
-   GLES = 0
-   WITH_DYNAREC = aarch64
-   STATIC_LINKING = 1
-
-# 64 bit ODROIDs
-else ifneq (,$(findstring odroid64,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
-   BOARD ?= $(shell cat /proc/cpuinfo | grep -i odroid | awk '{print $$3}')
-   ifneq (,$(findstring C2,$(BOARD)))
-      # ODROID-C2
-      CPUFLAGS += -mcpu=cortex-a53
-   else ifneq (,$(findstring N1,$(BOARD)))
-      # ODROID-N1
-      CPUFLAGS += -mcpu=cortex-a72.cortex-a53
-   else ifneq (,$(findstring N2,$(BOARD)))
-      # ODROID-N2
-      CPUFLAGS += -mcpu=cortex-a73.cortex-a53
-   endif
-
-   COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-
-# ODROIDs
-else ifneq (,$(findstring odroid,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
-   BOARD ?= $(shell cat /proc/cpuinfo | grep -i odroid | awk '{print $$3}')
-   CPUFLAGS += -marm -mfloat-abi=hard
-   HAVE_NEON = 1
-   WITH_DYNAREC=arm
-   ifneq (,$(findstring ODROIDC,$(BOARD)))
-      # ODROID-C1
-      CPUFLAGS += -mcpu=cortex-a5 -mfpu=neon
-   else ifneq (,$(findstring ODROID-XU,$(BOARD)))
-      # ODROID-XU3 & -XU3 Lite and -XU4
-      ifeq "$(shell expr `gcc -dumpversion` \>= 4.9)" "1"
-         CPUFLAGS += -mcpu=cortex-a15 -mtune=cortex-a15.cortex-a7 -mfpu=neon-vfpv4 -mvectorize-with-neon-quad
-      else
-         CPUFLAGS += -mcpu=cortex-a9 -mfpu=neon
-      endif
-   else
-      # ODROID-U2, -U3, -X & -X2
-      CPUFLAGS += -mcpu=cortex-a9 -mfpu=neon
-   endif
-
-   COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-
-# Amlogic S905/S905X/S912 (AMLGXBB/AMLGXL/AMLGXM) e.g. Khadas VIM1/2 / S905X2 (AMLG12A) & S922X/A311D (AMLG12B) e.g. Khadas VIM3 - 32-bit userspace
-else ifneq (,$(findstring AMLG,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -ldl
-   CPUFLAGS += -march=armv8-a+crc -mfloat-abi=hard -mfpu=neon-fp-armv8
-
-   ifneq (,$(findstring AMLG12,$(platform)))
-      ifneq (,$(findstring AMLG12B,$(platform)))
-         CPUFLAGS += -mtune=cortex-a73.cortex-a53
-      else
-         CPUFLAGS += -mtune=cortex-a53
-      endif
-      GLES3 = 1
-   else ifneq (,$(findstring AMLGX,$(platform)))
-      CPUFLAGS += -mtune=cortex-a53
-      ifneq (,$(findstring AMLGXM,$(platform)))
-         GLES3 = 1
-      else
-         GLES = 1
-      endif
-   endif
-
-   HAVE_NEON = 1
-   COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-
-# Amlogic S905/S912
-else ifneq (,$(findstring amlogic,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -ldl
-   CPUFLAGS += -marm -mfloat-abi=hard -mfpu=neon
-   HAVE_NEON = 1
-   COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
-   CPUFLAGS += -march=armv8-a -mcpu=cortex-a53 -mtune=cortex-a53
-
-# Rockchip RK3288 e.g. Asus Tinker Board / RK3328 e.g. PINE64 Rock64 / RK3399 e.g. PINE64 RockPro64 - 32-bit userspace
-else ifneq (,$(findstring RK,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -ldl
-
-   ifneq (,$(findstring RK33,$(platform)))
-      CPUFLAGS += -march=armv8-a+crc -mfloat-abi=hard -mfpu=neon-fp-armv8
-      ifneq (,$(findstring RK3399,$(platform)))
-         CPUFLAGS += -mtune=cortex-a72.cortex-a53
-         GLES3 = 1
-      else ifneq (,$(findstring RK3328,$(platform)))
-         CPUFLAGS += -mtune=cortex-a53
-         GLES = 1
-      endif
-   else ifneq (,$(findstring RK3288,$(platform)))
-      CPUFLAGS += -march=armv7ve -mtune=cortex-a17 -mfloat-abi=hard -mfpu=neon-vfpv4
-      GLES3 = 1
-   endif
-
-   HAVE_NEON = 1
-   COREFLAGS += -DUSE_GENERIC_GLESV2 -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-
-# OS X
-else ifneq (,$(findstring osx,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.dylib
-   LDFLAGS += -dynamiclib
-   OSXVER = `sw_vers -productVersion | cut -d. -f 2`
-   OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
-        LDFLAGS += -mmacosx-version-min=10.7
-   LDFLAGS += -stdlib=libc++
-
-   PLATCFLAGS += -D__MACOSX__ -DOSX -DOS_MAC_OS_X
-   GL_LIB := -framework OpenGL
-
-   # Target Dynarec
-   ifeq ($(ARCH), $(filter $(ARCH), ppc))
-      WITH_DYNAREC =
-   endif
-
-# FIXME: OSX uses OS_LINUX?
-   COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-# iOS
-else ifneq (,$(findstring ios,$(platform)))
-   ifeq ($(IOSSDK),)
-      IOSSDK := $(shell xcodebuild -version -sdk iphoneos Path)
-   endif
-
-   TARGET := $(TARGET_NAME)_libretro_ios.dylib
-   DEFINES += -DIOS
-   GLES = 1
-	ifeq ($(platform),ios-arm64)
-		WITH_DYNAREC=
-		GLES=1
-		GLES3=1
-		USE_GLES3=1
-		EGL := 0
-		PLATCFLAGS += -DHAVE_POSIX_MEMALIGN -DNO_ASM
-		PLATCFLAGS += -DIOS -marm -DOS_IOS -DDONT_WANT_ARM_OPTIMIZATIONS
-		CPUFLAGS += -marm -mfpu=neon -mfloat-abi=softfp
-		HAVE_NEON=0
-		CC         += -miphoneos-version-min=8.0
-		CC_AS      += -miphoneos-version-min=8.0
-		CXX        += -miphoneos-version-min=8.0
-		PLATCFLAGS += -miphoneos-version-min=8.0 -Wno-error=implicit-function-declaration
-		CC = clang -arch arm64 -isysroot $(IOSSDK)
-		CXX = clang++ -arch arm64 -isysroot $(IOSSDK)
-	else
-		PLATCFLAGS += -DOS_MAC_OS_X
-		PLATCFLAGS += -DHAVE_POSIX_MEMALIGN -DNO_ASM
-		PLATCFLAGS += -DIOS -marm
-		CPUFLAGS += -DNO_ASM  -DARM -D__arm__ -DARM_ASM -D__NEON_OPT
-		CPUFLAGS += -marm -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-		WITH_DYNAREC=arm
-		HAVE_NEON=1
-		CC         += -miphoneos-version-min=5.0
-		CC_AS      += -miphoneos-version-min=5.0
-		CXX        += -miphoneos-version-min=5.0
-		PLATCFLAGS += -miphoneos-version-min=5.0
-		CC = clang -arch armv7 -isysroot $(IOSSDK)
-		CC_AS = perl ./custom/tools/gas-preprocessor.pl $(CC)
-		CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
-	endif
-   LDFLAGS += -dynamiclib
-   GL_LIB := -framework OpenGLES
-# Android
-else ifneq (,$(findstring android,$(platform)))
-   ANDROID = 1
-   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -Wl,--warn-common -llog
-   INCFLAGS += -I$(ROOT_DIR)/GLideN64/src/GLideNHQ/inc
-   ifneq (,$(findstring x86,$(platform)))
-      CC = i686-linux-android-gcc
-      CXX = i686-linux-android-g++
-      WITH_DYNAREC = x86
-      LDFLAGS += -L$(ROOT_DIR)/custom/android/x86
-   else
-      CC = arm-linux-androideabi-gcc
-      CXX = arm-linux-androideabi-g++
-      WITH_DYNAREC = arm
-      HAVE_NEON = 1
-      CPUFLAGS += -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-      LDFLAGS += -march=armv7-a -L$(ROOT_DIR)/custom/android/arm
-   endif
-   ifneq (,$(findstring gles3,$(platform)))
-      GL_LIB := -lGLESv3
-      GLES3 = 1
-      TARGET := $(TARGET_NAME)_gles3_libretro_android.so
-   else
-      GL_LIB := -lGLESv2
-      GLES = 1
-      TARGET := $(TARGET_NAME)_libretro_android.so
-   endif
-   CPUFLAGS += -DANDROID -DEGL_EGLEXT_PROTOTYPES
-   COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-# emscripten
-else ifeq ($(platform), emscripten)
-   TARGET := $(TARGET_NAME)_libretro_emscripten.bc
-   GLES := 1
-   WITH_DYNAREC :=
-   CPUFLAGS += -DEMSCRIPTEN -DNO_ASM -s USE_ZLIB=1
-   PLATCFLAGS += \
-      -Dsinc_resampler=glupen_sinc_resampler \
-      -DCC_resampler=glupen_CC_resampler \
-      -Drglgen_symbol_map=glupen_rglgen_symbol_map \
-      -Drglgen_resolve_symbols_custom=glupen_rglgen_resolve_symbols_custom \
-      -Drglgen_resolve_symbols=glupen_rglgen_resolve_symbols \
-      -Dmemalign_alloc=glupen_memalign_alloc \
-      -Dmemalign_free=glupen_memalign_free \
-      -Dmemalign_alloc_aligned=glupen_memalign_alloc_aligned \
-      -Daudio_resampler_driver_find_handle=glupen_audio_resampler_driver_find_handle \
-      -Daudio_resampler_driver_find_ident=glupen_audio_resampler_driver_find_ident \
-      -Drarch_resampler_realloc=glupen_rarch_resampler_realloc \
-      -Dconvert_float_to_s16_C=glupen_convert_float_to_s16_C \
-      -Dconvert_float_to_s16_init_simd=glupen_convert_float_to_s16_init_simd \
-      -Dconvert_s16_to_float_C=glupen_convert_s16_to_float_C \
-      -Dconvert_s16_to_float_init_simd=glupen_convert_s16_to_float_init_simd \
-      -Dcpu_features_get_perf_counter=glupen_cpu_features_get_perf_counter \
-      -Dcpu_features_get_time_usec=glupen_cpu_features_get_time_usec \
-      -Dcpu_features_get_core_amount=glupen_cpu_features_get_core_amount \
-      -Dcpu_features_get=glupen_cpu_features_get \
-      -Dffs=glupen_ffs \
-      -Dstrlcpy_retro__=glupen_strlcpy_retro__ \
-      -Dstrlcat_retro__=glupen_strlcat_retro__
-   CC = emcc
-   CXX = em++
-   HAVE_NEON = 0
-
-   COREFLAGS += -DOS_LINUX
-   ASFLAGS = -f elf -d ELF_TYPE
-# Windows
+ifeq ($(DEBUG),1)
+	OPT := -Og
 else
-   TARGET := $(TARGET_NAME)_libretro.dll
-   LDFLAGS += -shared -static-libgcc -static-libstdc++ -lwinmm -lgdi32
-   
-   COREFLAGS += -DOS_WINDOWS -DMINGW
-   CXXFLAGS += -fpermissive
+	OPT := -O3
 endif
 
-ifeq ($(STATIC_LINKING), 1)
-   ifneq (,$(findstring win,$(platform)))
-      TARGET := $(TARGET:.dll=.lib)
-   else ifneq ($(platform), $(filter $(platform), osx ios))
-      TARGET := $(TARGET:.dylib=.a)            
-   else
-      TARGET := $(TARGET:.so=.a)
-   endif
-endif
-
-include Makefile.common
-
-ifeq ($(HAVE_NEON), 1)
-   COREFLAGS += -DHAVE_NEON -D__ARM_NEON__ -D__NEON_OPT -ftree-vectorize -mvectorize-with-neon-quad -ftree-vectorizer-verbose=2 -funsafe-math-optimizations -fno-finite-math-only
-endif
-
-ifeq ($(DEBUG), 1)
-   CPUOPTS += -Og -g3
-   #CPUOPTS += -DOPENGL_DEBUG
+ifneq ("$(wildcard $(SOURCES_NASM:.asm=.o))","")
+    CFLAGS += -flto
 else
-   CPUOPTS += -DNDEBUG -fsigned-char -ffast-math -fno-strict-aliasing -fomit-frame-pointer -fvisibility=hidden
-ifneq ($(platform), libnx)
-   CPUOPTS := -O3 $(CPUOPTS)
-endif
-   CXXFLAGS += -fvisibility-inlines-hidden
+    $(warning LTO is disabled on clean build.)
 endif
 
-ifeq ($(USE_LTO),1)
-   CPUFLAGS += -flto
-endif
+LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -lz
+CFLAGS += -DOS_LINUX -fPIC -g2 $(OPT)
 
-ifeq ($(PIC), 1)
-   fpic = -fPIC
-else
-   fpic = -fno-PIC
-endif
-
-OBJECTS     += $(SOURCES_CXX:.cpp=.o) $(SOURCES_C:.c=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
-CFLAGS      += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(PLATCFLAGS) $(fpic) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
-CXXFLAGS    += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(PLATCFLAGS) $(fpic) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
+OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
+CXXFLAGS := $(CFLAGS)
 
 # set C/C++ standard to use
-CFLAGS += -std=gnu11 -D_CRT_SECURE_NO_WARNINGS
-CXXFLAGS += -std=gnu++11 -D_CRT_SECURE_NO_WARNINGS
+CFLAGS += -std=gnu11
+CXXFLAGS += -std=gnu++11
 
-ifeq (,$(findstring android,$(platform)))
-   LDFLAGS    += -lpthread
-endif
-
-LDFLAGS    += $(fpic) -O3 $(CPUOPTS) $(PLATCFLAGS) $(CPUFLAGS)
+# Required defines
+override CFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ \
+    -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT \
+    -DMUPENPLUSAPI
+override CXXFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ \
+    -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT \
+    -DMUPENPLUSAPI
 
 all: $(TARGET)
 $(TARGET): $(OBJECTS)
-
-ifeq ($(STATIC_LINKING), 1)
-	$(AR) rcs $@ $(OBJECTS)
-else
-	$(CXX) -o $@ $(OBJECTS) $(LDFLAGS) $(GL_LIB)
-endif
+	$(CXX) -o $@ $^ $(LDLIBS)
 
 # Script hackery fll or generating ASM include files for the new dynarec assembly code
 $(AWK_DEST_DIR)/asm_defines_gas.h: $(AWK_DEST_DIR)/asm_defines_nasm.h
@@ -478,17 +161,49 @@ $(AWK_DEST_DIR)/asm_defines_nasm.h: $(ASM_DEFINES_OBJ)
 	nasm -i$(AWK_DEST_DIR)/ $(ASFLAGS) $< -o $@
 
 %.o: %.S $(AWK_DEST_DIR)/asm_defines_gas.h
-	$(CC_AS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	@echo "CC $@"
+	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 %.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@echo "CXX $@"
+	@$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 clean:
 	$(RM) $(OBJECTS)
 	$(RM) $(OBJECTS:.o=.gcda)
 	$(RM) $(TARGET)
 
-.PHONY: clean
+# 80char      |-------------------------------------------------------------------------------|
+help:
+	@echo "Available options and their descriptions when enabled:"
+	@echo "  DEBUG=$(DEBUG)"
+	@echo "          Enable all asserts and reduces optimisation."
+	@echo
+	@echo "  USE_HQTEX=$(USE_HQTEX)"
+	@echo "          Enable texture pack support and features of GLideNHQ."
+	@echo
+	@echo "  USE_GL=$(USE_GL)"
+	@echo "          Specify a specific version of OpenGL to use."
+	@echo "          Supported options are: GL GLES2"
+	@echo "          An attempt is made to automatically detect the best version of GL"
+	@echo "          for the target platform if this option is not manually specified."
+	@echo
+	@echo "  platform=$(platform)"
+	@echo "          Selects the target platform."
+	@echo "          Supported options are: unix win"
+	@echo "          An attempt is made to automatically detect the target platform"
+	@echo "          if this option is not manually specified."
+	@echo
+	@echo "  OPT=$(OPT)"
+	@echo "          Set additional compiler flags, such as optimisations."
+	@echo
+	@echo "  Example: make DEBUG=1 OPT=\"-Ofast -march=native\""
+	@echo
+	@echo
+	@echo "Mini64, Mupen64plus, and GLideN64 are all free software; see the LICENSE "
+	@echo "file for copying conditions. There is NO warranty; not even for"
+	@echo "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+	@echo ""
