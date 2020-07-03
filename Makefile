@@ -130,7 +130,7 @@ else
     $(warning LTO is disabled on clean build.)
 endif
 
-LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined -lz
+LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
 CFLAGS += -DOS_LINUX -fPIC -g2 $(OPT)
 
 OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
@@ -150,7 +150,7 @@ override CXXFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO
 
 all: $(TARGET)
 $(TARGET): $(OBJECTS)
-	$(CXX) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 # Script hackery fll or generating ASM include files for the new dynarec assembly code
 $(AWK_DEST_DIR)/asm_defines_gas.h: $(AWK_DEST_DIR)/asm_defines_nasm.h
