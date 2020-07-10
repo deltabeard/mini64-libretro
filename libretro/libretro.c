@@ -87,13 +87,10 @@ save_memory_data saved_memory;
 static cothread_t game_thread;
 cothread_t retro_thread;
 
-int astick_deadzone;
-int astick_sensitivity;
-int r_cbutton;
-int l_cbutton;
-int d_cbutton;
-int u_cbutton;
-bool alternate_mapping;
+int r_cbutton = RETRO_DEVICE_ID_JOYPAD_A;
+int l_cbutton = RETRO_DEVICE_ID_JOYPAD_Y;
+int d_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
+int u_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
 
 static bool     emu_initialized     = false;
 static unsigned initial_boot        = true;
@@ -158,7 +155,7 @@ extern struct
 } controller[4];
 // ...but it won't be at least the first time we're called, in that case set
 // these instead for input_plugin to read.
-int pad_pak_types[4];
+int pad_pak_types[4] = { PLUGIN_MEMPAK, PLUGIN_NONE };
 int pad_present[4] = {1, 1, 1, 1};
 
 void log_fallback(enum retro_log_level level, const char *fmt, ...)
@@ -302,10 +299,6 @@ static void setup_variables(void)
             "Framerate; Original|Fullspeed" },
         { CORE_NAME "-virefresh",
             "VI Refresh (Overclock); Auto|1500|2200" },
-        { CORE_NAME "-astick-deadzone",
-           "Analog Deadzone (percent); 15|20|25|30|0|5|10"},
-        { CORE_NAME "-astick-sensitivity",
-           "Analog Sensitivity (percent); 100|105|110|115|120|125|130|135|140|145|150|50|55|60|65|70|75|80|85|90|95"},
         { CORE_NAME "-r-cbutton",
            "Right C Button; C1|C2|C3|C4"},
         { CORE_NAME "-l-cbutton",
@@ -332,7 +325,7 @@ static void setup_variables(void)
     };
 
     static const struct retro_controller_description port[] = {
-        { "Controller", RETRO_DEVICE_JOYPAD },
+        { "Controller", RETRO_DEVICE_ANALOG },
         { "RetroPad", RETRO_DEVICE_JOYPAD },
     };
 
@@ -904,16 +897,6 @@ static void update_variables(void)
         }
     }
 
-    var.key = CORE_NAME "-astick-deadzone";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-        astick_deadzone = (int)(atoi(var.value) * 0.01f * 0x8000);
-
-    var.key = CORE_NAME "-astick-sensitivity";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-        astick_sensitivity = atoi(var.value);
-
     var.key = CORE_NAME "-CountPerOp";
     var.value = NULL;
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -982,13 +965,6 @@ static void update_variables(void)
             u_cbutton = RETRO_DEVICE_ID_JOYPAD_B;
         else if (!strcmp(var.value, "C4"))
             u_cbutton = RETRO_DEVICE_ID_JOYPAD_X;
-    }
-
-    var.key = CORE_NAME "-alt-map";
-    var.value = NULL;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-    {
-        alternate_mapping = !strcmp(var.value, "False") ? 0 : 1;
     }
 
     var.key = CORE_NAME "-ForceDisableExtraMem";

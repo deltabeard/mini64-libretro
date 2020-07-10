@@ -143,7 +143,7 @@ typedef struct {
 } CONTROL;
 
 typedef union {
-    unsigned int Value;
+    uint32_t Value;
     struct {
         unsigned R_DPAD       : 1;
         unsigned L_DPAD       : 1;
