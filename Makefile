@@ -18,6 +18,7 @@ USE_ARCH := $(shell uname -m)
 
 TARGET_NAME := mini64
 TARGET := $(TARGET_NAME)_libretro.so
+TARGET_STATIC := $(TARGET:.so=.a)
 
 ROOT_DIR := .
 LIBRETRO_DIR := $(ROOT_DIR)/libretro
@@ -119,9 +120,9 @@ else
 endif
 
 ifeq ($(DEBUG),1)
-	OPT := -Og
+	OPT := -Og -g3
 else
-	OPT := -O3
+	OPT := -O3 -g1
 endif
 
 ifneq ("$(wildcard $(SOURCES_NASM:.asm=.o))","")
@@ -131,7 +132,7 @@ else
 endif
 
 LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
-CFLAGS += -DOS_LINUX -fPIC -g2 $(OPT)
+CFLAGS += -DOS_LINUX -fPIC $(OPT)
 
 OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
 CXXFLAGS := $(CFLAGS)
@@ -148,9 +149,12 @@ override CXXFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -D__LIBRETRO
     -DM64P_PLUGIN_API -DM64P_CORE_PROTOTYPES -DTXFILTER_LIB -D__VEC4_OPT \
     -DMUPENPLUSAPI
 
-all: $(TARGET)
+all: $(TARGET) $(TARGET_STATIC)
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+
+$(TARGET_STATIC): $(OBJECTS)
+	$(AR) rcs $@ $^
 
 # Script hackery fll or generating ASM include files for the new dynarec assembly code
 $(AWK_DEST_DIR)/asm_defines_gas.h: $(AWK_DEST_DIR)/asm_defines_nasm.h
@@ -164,12 +168,10 @@ $(AWK_DEST_DIR)/asm_defines_nasm.h: $(ASM_DEFINES_OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
-	@echo "CC $@"
-	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 %.o: %.cpp
-	@echo "CXX $@"
-	@$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 clean:
 	$(RM) $(OBJECTS)
