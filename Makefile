@@ -14,6 +14,9 @@ USE_HQTEX := 1
 # Specify target architecture
 USE_ARCH := $(shell uname -m)
 
+CFLAGS :=
+LDFLAGS :=
+
 .PHONY: clean
 
 TARGET_NAME := mini64
@@ -56,6 +59,12 @@ endif
 
 ifeq ($(USE_GL),)
     err := $(error A compatible version of OpenGL was not found)
+endif
+
+ifeq ($(platform),win)
+        CFLAGS += -DOS_WINDOWS
+else
+        CFLAGS += -DOS_LINUX
 endif
 
 # Prioritise OpenGL before OpenGLES if both are available.
@@ -132,7 +141,7 @@ else
 endif
 
 LDLIBS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T -Wl,--no-undefined
-CFLAGS += -DOS_LINUX -fPIC $(OPT)
+CFLAGS += -fPIC $(OPT)
 
 OBJECTS  := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o) $(SOURCES_ASM:.S=.o) $(SOURCES_NASM:.asm=.o)
 CXXFLAGS := $(CFLAGS)
