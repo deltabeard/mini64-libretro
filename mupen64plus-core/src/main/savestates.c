@@ -35,7 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+
+#ifndef __LIBRETRO__
 #include <zlib.h>
+#endif
 
 #define M64P_CORE_PROTOTYPES 1
 #include "api/callbacks.h"
